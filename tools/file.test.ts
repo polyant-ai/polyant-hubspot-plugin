@@ -58,8 +58,24 @@ describe("hubspot:file", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
+  it("answers the model when a dev-mode take fails, instead of throwing", async () => {
+    const failing = { ...ctxWithKey, artifacts: { put: vi.fn(), take: vi.fn().mockRejectedValue(new Error("artifact too large for a dev frame")) } };
+    const tool = buildTool(def, failing) as any;
+    const result = await tool.execute({
+      action: null,
+      fileHandle: "artifact_x",
+      filename: "x.pdf",
+      access: null,
+      folderPath: null,
+      associateContactId: null,
+      noteBody: null,
+    });
+    expect(result).toMatchObject({ error: expect.stringContaining("too large") });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("uploads via Files API and returns publicUrl + fileId", async () => {
-    const handle = artifacts.put({ buffer: Buffer.from("%PDF-1.4 fake"), filename: "doc.pdf", mime: "application/pdf" });
+    const handle = await artifacts.put({ buffer: Buffer.from("%PDF-1.4 fake"), filename: "doc.pdf", mime: "application/pdf" });
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ id: "FILE_123", url: "https://hubspot.example/file/abc" }),
     );
@@ -93,8 +109,31 @@ describe("hubspot:file", () => {
     expect(opts.access).toBe("PUBLIC_NOT_INDEXABLE");
   });
 
+  it("awaits an asynchronous ctx.artifacts (the dev-mode bridge answers with Promises)", async () => {
+    const sync = createMockArtifacts();
+    const asyncArtifacts = {
+      put: async (p: { buffer: Buffer; filename: string; mime: string }) => sync.put(p),
+      take: async (h: string) => sync.take(h),
+    };
+    const handle = await asyncArtifacts.put({ buffer: Buffer.from("%PDF-1.4"), filename: "doc.pdf", mime: "application/pdf" });
+    mockFetch.mockResolvedValueOnce(jsonResponse({ id: "FILE_9", url: "https://hubspot.example/file/9" }));
+
+    const tool = buildTool(def, { ...ctxWithKey, artifacts: asyncArtifacts }) as any;
+    const result = await tool.execute({
+      action: null,
+      fileHandle: handle,
+      filename: "doc.pdf",
+      access: null,
+      folderPath: null,
+      associateContactId: null,
+      noteBody: null,
+    });
+
+    expect(result).toMatchObject({ success: true, fileId: "FILE_9" });
+  });
+
   it("associates file→contact when associateContactId is provided (no note)", async () => {
-    const handle = artifacts.put({ buffer: Buffer.from("%PDF-1.4"), filename: "doc.pdf", mime: "application/pdf" });
+    const handle = await artifacts.put({ buffer: Buffer.from("%PDF-1.4"), filename: "doc.pdf", mime: "application/pdf" });
     mockFetch
       // Files upload
       .mockResolvedValueOnce(jsonResponse({ id: "FILE_X", url: "https://hubspot.example/file/x" }))
@@ -128,7 +167,7 @@ describe("hubspot:file", () => {
   });
 
   it("creates note when associateContactId AND noteBody are both provided, substituting {{FILE_URL}} and {{FILENAME}}", async () => {
-    const handle = artifacts.put({ buffer: Buffer.from("%PDF-1.4"), filename: "doc.pdf", mime: "application/pdf" });
+    const handle = await artifacts.put({ buffer: Buffer.from("%PDF-1.4"), filename: "doc.pdf", mime: "application/pdf" });
     mockFetch
       // Files upload
       .mockResolvedValueOnce(jsonResponse({ id: "FILE_X", url: "https://hubspot.example/file/x" }))
@@ -169,7 +208,7 @@ describe("hubspot:file", () => {
   });
 
   it("returns the upload result with a warning if file→contact association fails", async () => {
-    const handle = artifacts.put({ buffer: Buffer.from("%PDF-1.4"), filename: "doc.pdf", mime: "application/pdf" });
+    const handle = await artifacts.put({ buffer: Buffer.from("%PDF-1.4"), filename: "doc.pdf", mime: "application/pdf" });
     mockFetch
       .mockResolvedValueOnce(jsonResponse({ id: "FILE_X", url: "https://hubspot.example/file/x" }))
       .mockResolvedValueOnce(jsonResponse({ message: "boom" }, 500));
@@ -190,7 +229,7 @@ describe("hubspot:file", () => {
   });
 
   it("returns error when Files API responds non-ok", async () => {
-    const handle = artifacts.put({ buffer: Buffer.from("%PDF-1.4"), filename: "doc.pdf", mime: "application/pdf" });
+    const handle = await artifacts.put({ buffer: Buffer.from("%PDF-1.4"), filename: "doc.pdf", mime: "application/pdf" });
     mockFetch.mockResolvedValueOnce(jsonResponse({ message: "unauthorized" }, 401));
 
     const tool = buildTool(def, ctxWithKey) as any;

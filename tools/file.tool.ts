@@ -119,7 +119,14 @@ export default defineTool({
 
       // The bytes come from another plugin's tool through the engine's
       // artifact store, bound to this conversation. One take consumes it.
-      const entry = ctx.artifacts.take(fileHandle);
+      let entry: Awaited<ReturnType<typeof ctx.artifacts.take>>;
+      try {
+        entry = await ctx.artifacts.take(fileHandle);
+      } catch (err) {
+        // Only a dev-mode bridge can fail here (the in-process store never
+        // throws): answer the model, do not abort the turn.
+        return { error: `fileHandle "${fileHandle}" non leggibile: ${err instanceof Error ? err.message : String(err)}` };
+      }
       if (!entry) {
         return {
           error: `fileHandle "${fileHandle}" non trovato o scaduto. Rigenera il file (es. con extra:markdownToPdf) e riprova.`,

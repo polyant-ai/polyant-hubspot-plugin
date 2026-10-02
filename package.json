@@ -16,7 +16,7 @@
     "@polyant-ai/plugin-sdk": "*"
   },
   "devDependencies": {
-    "@polyant-ai/plugin-sdk": "git+https://github.com/polyant-ai/polyant-sdk.git#v1.7.0",
+    "@polyant-ai/plugin-sdk": "git+https://github.com/polyant-ai/polyant-sdk.git#v1.9.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0",
     "vitest": "^3.2.0"
