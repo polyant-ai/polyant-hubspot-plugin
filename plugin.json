@@ -1,8 +1,14 @@
 {
   "name": "hubspot",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "engine": ">=1.2.0",
   "namespace": "hubspot",
   "toolsDir": "tools",
-  "oauthProviders": []
+  "oauthProviders": [],
+  "displayName": "HubSpot CRM",
+  "description": "Contatti, deal, ticket, attività, email e file HubSpot a disposizione degli agenti.",
+  "icon": "icon.svg",
+  "category": "CRM",
+  "publisher": "Exelab",
+  "longDescription": "Collega gli agenti al portale HubSpot dell'Organizzazione: cercano e aggiornano contatti, aziende, deal e ticket, registrano note, attività e meeting, inviano email one-to-one e allegano file ai record.\n\nOgni chiamata usa la private app HubSpot configurata come secret dell'agente, con i soli scope che le concedi: il plugin non vede nulla di più di quello che la chiave permette."
 }
