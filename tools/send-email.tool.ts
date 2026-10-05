@@ -12,7 +12,7 @@ export default defineTool({
   description:
     "Invia un'email tracciata via HubSpot e la associa a un contatto nel CRM.\n" +
     "Usa per email di follow-up, outreach, comunicazioni commerciali o notifiche. L'email viene registrata nella timeline del contatto.\n" +
-    "NON usare per creare note — usa hubspotNote.\n" +
+    "NON usare per creare note — usa hubspot__note.\n" +
     "NON usare per comunicazioni via canali (Telegram, Slack) — usa i canali configurati.\n" +
     "Restituisce ID dell'email inviata e URL nel portale HubSpot.\n" +
     "Caveat: richiede contactId (il contatto deve avere un'email). Il body supporta HTML.",

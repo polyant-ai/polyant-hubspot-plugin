@@ -13,7 +13,7 @@ export default defineTool({
   description:
     "Gestisce i deal nel CRM HubSpot: crea, aggiorna o cerca deal (opportunita').\n" +
     "Usa con action 'create' per nuovi deal, 'update' per aggiornare deal esistenti, 'search' per cercare.\n" +
-    "NON usare per creare contatti — usa hubspotContact con action 'create'.\n" +
+    "NON usare per creare contatti — usa hubspot__contact con action 'create'.\n" +
     "Restituisce ID del deal e URL nel portale HubSpot.\n" +
     "Caveat: per 'create', stage deve corrispondere a una pipeline stage valida. contactId e companyId sono opzionali per l'associazione. Per 'update', dealId è obbligatorio — puoi aggiornare stage, amount, closeDate, description. Per 'search', closeDateAfter/Before filtrano sulla data di chiusura prevista, NON sulla data di creazione. Il parametro opzionale associatedContactId filtra i deal di uno specifico contatto — utile per trovare lo storico acquisti di un cliente esistente. Per leggere custom properties del portale passa returnProperties (es. ['plan_tier','sla_class']) — i valori vengono esposti in customProperties di ogni deal. Stages: appointmentscheduled, qualifiedtobuy, presentationscheduled, decisionmakerboughtin, closedwon, closedlost.",
   category: "crm",

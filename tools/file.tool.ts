@@ -17,7 +17,7 @@ export default defineTool({
   description:
     "Tool multi-action per HubSpot Files. Discriminatore: `action`.\n\n" +
     "action='upload' (default se action è null/omesso):\n" +
-    "  Carica un file su HubSpot Files (Files API v3). Consuma un fileHandle prodotto da un tool che genera file (es. extra:markdownToPdf) (one-shot, valido 10 minuti).\n" +
+    "  Carica un file su HubSpot Files (Files API v3). Consuma un fileHandle prodotto da un tool che genera file (es. extra__markdownToPdf) (one-shot, valido 10 minuti).\n" +
     "  Con access=PUBLIC_NOT_INDEXABLE il file ha un URL pubblico utilizzabile come allegato (es. mediaUrl WhatsApp).\n" +
     "  Se passi associateContactId, il file viene ASSOCIATO al contatto (visibile nella scheda Attachments del contact in HubSpot UI), SENZA creare nessuna nota.\n" +
     "  Se passi associateContactId E noteBody, oltre all'association viene anche creata una Note engagement con il body HTML fornito. Il body supporta i placeholder {{FILE_URL}} e {{FILENAME}} che vengono sostituiti dal tool con l'URL pubblico e il filename effettivi.\n\n" +
@@ -65,7 +65,7 @@ export default defineTool({
       fileHandle: z
         .string()
         .nullable()
-        .describe("OBBLIGATORIO per action='upload'. Handle opaco restituito da un tool che genera file (es. extra:markdownToPdf) (consumato una sola volta). Ignorato per action='search'."),
+        .describe("OBBLIGATORIO per action='upload'. Handle opaco restituito da un tool che genera file (es. extra__markdownToPdf) (consumato una sola volta). Ignorato per action='search'."),
       filename: z
         .string()
         .nullable()
@@ -129,7 +129,7 @@ export default defineTool({
       }
       if (!entry) {
         return {
-          error: `fileHandle "${fileHandle}" non trovato o scaduto. Rigenera il file (es. con extra:markdownToPdf) e riprova.`,
+          error: `fileHandle "${fileHandle}" non trovato o scaduto. Rigenera il file (es. con extra__markdownToPdf) e riprova.`,
         };
       }
 

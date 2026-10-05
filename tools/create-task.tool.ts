@@ -13,8 +13,8 @@ export default defineTool({
   description:
     "Crea un task nel CRM HubSpot e lo associa a un contatto.\n" +
     "Usa per registrare attivita' da completare: richieste di richiamata, follow-up, task operativi.\n" +
-    "NON usare per creare note — usa hubspotNote.\n" +
-    "NON usare per creare appuntamenti — usa hubspotMeeting.\n" +
+    "NON usare per creare note — usa hubspot__note.\n" +
+    "NON usare per creare appuntamenti — usa hubspot__meeting.\n" +
     "Restituisce ID del task creato e URL nel portale HubSpot.\n" +
     "Caveat: dueDate e' opzionale ma consigliato. La priority accetta valori HubSpot standard (HIGH, MEDIUM, LOW).\n" +
     "Owner: per assegnare il task a un utente HubSpot specifico passa ownerEmail (es. 'mario.rossi@acme.net') o, se conosci direttamente il numeric id, ownerId. Se entrambi null il task è creato senza owner.",
