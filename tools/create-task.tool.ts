@@ -11,62 +11,62 @@ import { ensureHtmlBody } from "../lib/hubspot-rich-text.js";
 export default defineTool({
   name: "createTask",
   description:
-    "Crea un task nel CRM HubSpot e lo associa a un contatto.\n" +
-    "Usa per registrare attivita' da completare: richieste di richiamata, follow-up, task operativi.\n" +
-    "NON usare per creare note — usa hubspot__note.\n" +
-    "NON usare per creare appuntamenti — usa hubspot__meeting.\n" +
-    "Restituisce ID del task creato e URL nel portale HubSpot.\n" +
-    "Caveat: dueDate e' opzionale ma consigliato. La priority accetta valori HubSpot standard (HIGH, MEDIUM, LOW).\n" +
-    "Owner: per assegnare il task a un utente HubSpot specifico passa ownerEmail (es. 'mario.rossi@acme.net') o, se conosci direttamente il numeric id, ownerId. Se entrambi null il task è creato senza owner.",
+    "Create a task in the HubSpot CRM and associate it with a contact.\n" +
+    "Use to record activities to complete: callback requests, follow-ups, operational tasks.\n" +
+    "Do NOT use to create notes — use hubspot__note.\n" +
+    "Do NOT use to create appointments — use hubspot__meeting.\n" +
+    "Returns the created task ID and its URL in the HubSpot portal.\n" +
+    "Caveat: dueDate is optional but recommended. priority accepts the standard HubSpot values (HIGH, MEDIUM, LOW).\n" +
+    "Owner: to assign the task to a specific HubSpot user, pass ownerEmail (e.g. 'jane.doe@acme.com') or, if you already know the numeric id, ownerId. If both are null the task is created without an owner.",
   category: "crm",
   requiredSecrets: ["hubspot_api_key"],
   inputExamples: [
     {
-      label: "Task di richiamata",
-      input: { contactId: "12345", subject: "Richiamata richiesta", body: "Il contatto ha chiesto di essere richiamato alle 15", priority: "HIGH", dueDate: "2026-04-10" },
+      label: "Callback task",
+      input: { contactId: "12345", subject: "Callback requested", body: "The contact asked to be called back at 3pm", priority: "HIGH", dueDate: "2026-04-10" },
     },
     {
-      label: "Task assegnato a un owner specifico via email",
-      input: { contactId: "12345", subject: "Revisione lead", body: "Punti fuori policy da revisionare", priority: "HIGH", dueDate: "2026-04-12", ownerEmail: "mario.rossi@acme.net" },
+      label: "Task assigned to a specific owner via email",
+      input: { contactId: "12345", subject: "Lead review", body: "Out-of-policy items to review", priority: "HIGH", dueDate: "2026-04-12", ownerEmail: "jane.doe@acme.com" },
     },
   ],
   parameters: z.object({
       contactId: z
         .string()
-        .describe("ID del contatto HubSpot a cui associare il task"),
+        .describe("HubSpot contact ID to associate the task with"),
       subject: z
         .string()
         .describe(
-          "Oggetto del task (es. 'Richiamata - Mario Rossi')",
+          "Task subject (e.g. 'Callback — Jane Doe')",
         ),
       body: z
         .string()
         .nullable()
         .describe(
-          "Descrizione dettagliata: motivo della richiamata e riassunto conversazione",
+          "Detailed description: reason for the task and conversation summary",
         ),
       priority: z
         .enum(["LOW", "MEDIUM", "HIGH"])
-        .describe("Priorita' del task"),
+        .describe("Task priority"),
       dueDate: z
         .string()
         .nullable()
-        .describe("Data di scadenza ISO 8601. Se null, impostata a oggi."),
+        .describe("Due date in ISO 8601. If null, set to today."),
       ownerEmail: z
         .string()
         .nullable()
         .describe(
-          "Email dell'utente HubSpot a cui assegnare il task (es. 'mario.rossi@acme.net). " +
-          "Il tool risolve internamente l'email in `hubspot_owner_id`. " +
-          "Se non risolve, il task viene creato senza owner e viene aggiunto un warning. " +
-          "Se è valorizzato anche `ownerId`, `ownerId` prevale.",
+          "Email of the HubSpot user to assign the task to (e.g. 'jane.doe@acme.com'). " +
+          "The tool resolves the email to `hubspot_owner_id` internally. " +
+          "If the email cannot be resolved, the task is created without an owner and a warning is added. " +
+          "If `ownerId` is also provided, `ownerId` wins.",
         ),
       ownerId: z
         .string()
         .nullable()
         .describe(
-          "ID numerico HubSpot dell'owner (alternativa a ownerEmail, se lo conosci direttamente). " +
-          "Prevale su ownerEmail se entrambi sono passati.",
+          "Numeric HubSpot owner ID (alternative to ownerEmail, when you already know it). " +
+          "Wins over ownerEmail when both are passed.",
         ),
     }),
   execute: async ({
@@ -95,7 +95,7 @@ export default defineTool({
         if (isNaN(timestamp.getTime())) {
           return {
             error:
-              "Formato data non valido. Usa ISO 8601 (es. 2026-03-20T10:00:00).",
+              "Invalid date format. Use ISO 8601 (e.g. 2026-03-20T10:00:00).",
           };
         }
 
@@ -108,7 +108,7 @@ export default defineTool({
         if (!resolvedOwnerId && ownerEmail) {
           resolvedOwnerId = await resolveOwnerIdFromEmail(apiKey, ownerEmail);
           if (!resolvedOwnerId) {
-            ownerWarning = `Owner HubSpot non trovato per email "${ownerEmail}" — task creato senza owner.`;
+            ownerWarning = `HubSpot owner not found for email "${ownerEmail}" — task created without owner.`;
           }
         }
 
@@ -143,7 +143,7 @@ export default defineTool({
         if (!createResponse.ok) {
           const respBody = await createResponse.text();
           return {
-            error: `Errore creazione task (${createResponse.status}): ${respBody.slice(0, 200)}`,
+            error: `Task creation failed (${createResponse.status}): ${respBody.slice(0, 200)}`,
           };
         }
 
@@ -177,7 +177,7 @@ export default defineTool({
           const respBody = await assocResponse.text();
           return {
             success: true,
-            warning: `Task creato (ID: ${task.id}) ma associazione al contatto fallita: ${respBody.slice(0, 200)}`,
+            warning: `Task created (ID: ${task.id}) but association to the contact failed: ${respBody.slice(0, 200)}`,
             task: { id: task.id, subject, priority, ...(resolvedOwnerId ? { ownerId: resolvedOwnerId } : {}) },
             ...(ownerWarning ? { ownerWarning } : {}),
           };
@@ -208,7 +208,7 @@ export default defineTool({
             ...(resolvedOwnerId ? { ownerId: resolvedOwnerId } : {}),
           },
           message:
-            "Richiesta di richiamata creata con successo e associata al contatto.",
+            "Task created successfully and associated with the contact.",
           ...(ownerWarning ? { ownerWarning } : {}),
         };
       } catch (err) {
@@ -219,7 +219,7 @@ export default defineTool({
           error: errMsg(err),
         });
         return {
-          error: `Errore creazione task di richiamata: ${errMsg(err)}`,
+          error: `Task creation failed: ${errMsg(err)}`,
         };
       }
     },

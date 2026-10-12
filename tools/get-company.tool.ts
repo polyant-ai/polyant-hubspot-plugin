@@ -26,19 +26,19 @@ const COMPANY_PROPERTIES = [
 export default defineTool({
   name: "getCompany",
   description:
-    "Cerca aziende nel CRM HubSpot per nome o dominio (almeno uno richiesto).\n" +
-    "Restituisce nome, dominio, settore, numero dipendenti, revenue e URL portale.",
+    "Search companies in the HubSpot CRM by name or domain (at least one required).\n" +
+    "Returns name, domain, industry, employee count, revenue and the portal URL.",
   category: "crm",
   requiredSecrets: ["hubspot_api_key"],
   parameters: z.object({
       name: z
         .string()
         .nullable()
-        .describe("Nome azienda da cercare (anche parziale)"),
+        .describe("Company name to search for (partial matches allowed)"),
       domain: z
         .string()
         .nullable()
-        .describe("Dominio web da cercare (es. 'acme.it')"),
+        .describe("Web domain to search for (e.g. 'acme.com')"),
     }),
   execute: async (params: {
       name: string | null;
@@ -55,7 +55,7 @@ export default defineTool({
 
       try {
         if (!params.name && !params.domain) {
-          return { error: "Specifica almeno un criterio di ricerca: nome o dominio." };
+          return { error: "Provide at least one search criterion: name or domain." };
         }
 
         const filterGroups: Array<{ filters: Array<{ propertyName: string; operator: string; value: string }> }> = [];

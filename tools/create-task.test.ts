@@ -63,7 +63,7 @@ describe("hubspotCreateTask", () => {
       { contactId: "123", subject: "Test", body: null, priority: "MEDIUM", dueDate: null },
       toolCtx,
     );
-    expect(result).toEqual({ error: "HubSpot API key non configurata. Configura la chiave nelle impostazioni dell'istanza." });
+    expect(result).toEqual({ error: "HubSpot API key not configured. Set the key in the instance settings." });
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
@@ -87,8 +87,8 @@ describe("hubspotCreateTask", () => {
     const result = await tool.execute(
       {
         contactId: "contact-123",
-        subject: "Richiamata - Mario Rossi",
-        body: "Il contatto richiede informazioni sul servizio",
+        subject: "Callback - Jane Doe",
+        body: "Contact requests information about the service",
         priority: "HIGH",
         dueDate: null,
       },
@@ -97,7 +97,7 @@ describe("hubspotCreateTask", () => {
 
     expect(result.success).toBe(true);
     expect(result.task.id).toBe("task-456");
-    expect(result.task.subject).toBe("Richiamata - Mario Rossi");
+    expect(result.task.subject).toBe("Callback - Jane Doe");
     expect(result.task.priority).toBe("HIGH");
 
     // Verify task creation call (3 calls: create, associate, getPortalId)
@@ -108,8 +108,8 @@ describe("hubspotCreateTask", () => {
     expect(createOpts.headers.Authorization).toBe("Bearer test-api-key");
 
     const createBody = JSON.parse(createOpts.body);
-    expect(createBody.properties.hs_task_subject).toBe("Richiamata - Mario Rossi");
-    expect(createBody.properties.hs_task_body).toBe("Il contatto richiede informazioni sul servizio");
+    expect(createBody.properties.hs_task_subject).toBe("Callback - Jane Doe");
+    expect(createBody.properties.hs_task_body).toBe("Contact requests information about the service");
     expect(createBody.properties.hs_task_priority).toBe("HIGH");
     expect(createBody.properties.hs_task_status).toBe("NOT_STARTED");
     expect(createBody.properties.hs_task_type).toBe("CALL");
@@ -156,7 +156,7 @@ describe("hubspotCreateTask", () => {
       toolCtx,
     );
 
-    expect(result.error).toContain("Formato data non valido");
+    expect(result.error).toContain("Invalid date format");
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
@@ -175,7 +175,7 @@ describe("hubspotCreateTask", () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.warning).toContain("associazione al contatto fallita");
+    expect(result.warning).toContain("association to the contact failed");
     expect(result.task.id).toBe("task-999");
   });
 
@@ -191,7 +191,7 @@ describe("hubspotCreateTask", () => {
       toolCtx,
     );
 
-    expect(result.error).toContain("Errore creazione task (401)");
+    expect(result.error).toContain("Task creation failed (401)");
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
@@ -205,7 +205,7 @@ describe("hubspotCreateTask", () => {
       toolCtx,
     );
 
-    expect(result.error).toContain("Errore creazione task di richiamata");
+    expect(result.error).toContain("Task creation failed");
     expect(result.error).toContain("Network failure");
   });
 });

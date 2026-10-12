@@ -73,7 +73,7 @@ describe("hubspotTicket", () => {
       { ...baseParams, action: "update" },
       toolCtx,
     );
-    expect(result.error).toContain("ticketId obbligatorio");
+    expect(result.error).toContain("ticketId is required");
   });
 
   describe("action: update", () => {
@@ -83,7 +83,7 @@ describe("hubspotTicket", () => {
         { ...baseParams, action: "update", priority: "HIGH" },
         toolCtx,
       );
-      expect(result.error).toContain("ticketId obbligatorio");
+      expect(result.error).toContain("ticketId is required");
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
@@ -93,7 +93,7 @@ describe("hubspotTicket", () => {
         { ...baseParams, action: "update", ticketId: "t-1" },
         toolCtx,
       );
-      expect(result.error).toContain("almeno uno tra priority");
+      expect(result.error).toContain("at least one of priority");
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
@@ -219,7 +219,7 @@ describe("hubspotTicket", () => {
         toolCtx,
       );
 
-      expect(result.error).toContain("Errore update ticket (404)");
+      expect(result.error).toContain("Ticket update failed (404)");
     });
 
     it("succeeds even if the before-snapshot fetch fails (best-effort diff)", async () => {
@@ -265,7 +265,7 @@ describe("hubspotTicket", () => {
         toolCtx,
       );
 
-      expect(result.error).toContain("Errore update ticket");
+      expect(result.error).toContain("Ticket update failed");
       expect(result.error).toContain("network down");
     });
   });

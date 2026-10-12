@@ -11,111 +11,111 @@ import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
 export default defineTool({
   name: "deal",
   description:
-    "Gestisce i deal nel CRM HubSpot: crea, aggiorna o cerca deal (opportunita').\n" +
-    "Usa con action 'create' per nuovi deal, 'update' per aggiornare deal esistenti, 'search' per cercare.\n" +
-    "NON usare per creare contatti — usa hubspot__contact con action 'create'.\n" +
-    "Restituisce ID del deal e URL nel portale HubSpot.\n" +
-    "Caveat: per 'create', stage deve corrispondere a una pipeline stage valida. contactId e companyId sono opzionali per l'associazione. Per 'update', dealId è obbligatorio — puoi aggiornare stage, amount, closeDate, description. Per 'search', closeDateAfter/Before filtrano sulla data di chiusura prevista, NON sulla data di creazione. Il parametro opzionale associatedContactId filtra i deal di uno specifico contatto — utile per trovare lo storico acquisti di un cliente esistente. Per leggere custom properties del portale passa returnProperties (es. ['plan_tier','sla_class']) — i valori vengono esposti in customProperties di ogni deal. Stages: appointmentscheduled, qualifiedtobuy, presentationscheduled, decisionmakerboughtin, closedwon, closedlost.",
+    "Manage deals in the HubSpot CRM: create, update or search deals (opportunities).\n" +
+    "Use action 'create' for new deals, 'update' to modify existing deals, 'search' to query.\n" +
+    "Do NOT use this tool to create contacts — use hubspot__contact with action 'create'.\n" +
+    "Returns the deal ID and its URL in the HubSpot portal.\n" +
+    "Caveat: for 'create', stage must match a valid pipeline stage. contactId and companyId are optional for associations. For 'update', dealId is required — you can update stage, amount, closeDate, description. For 'search', closeDateAfter/Before filter by expected close date, NOT by creation date. The optional associatedContactId parameter filters deals belonging to a specific contact — useful to find purchase history of an existing customer. To read portal custom properties pass returnProperties (e.g. ['plan_tier','sla_class']) — values are exposed under customProperties on each deal. Stages: appointmentscheduled, qualifiedtobuy, presentationscheduled, decisionmakerboughtin, closedwon, closedlost.",
   category: "crm",
   requiredSecrets: ["hubspot_api_key"],
   inputExamples: [
     {
-      label: "Deal minimo",
-      input: { action: "create", dealName: "Rinnovo servizio - Acme Srl", stage: "appointmentscheduled" },
+      label: "Minimal deal",
+      input: { action: "create", dealName: "Renewal — Acme Inc.", stage: "appointmentscheduled" },
     },
     {
-      label: "Deal completo con associazioni",
-      input: { action: "create", dealName: "Upgrade Premium", stage: "qualifiedtobuy", amount: 5000, closeDate: "2026-06-30", contactId: "12345", companyId: "67890" },
+      label: "Full deal with associations",
+      input: { action: "create", dealName: "Premium Upgrade", stage: "qualifiedtobuy", amount: 5000, closeDate: "2026-06-30", contactId: "12345", companyId: "67890" },
     },
     {
-      label: "Aggiorna stage di un deal",
+      label: "Update a deal's stage",
       input: { action: "update", dealId: "496624375027", stage: "decisionmakerboughtin" },
     },
     {
-      label: "Tutti i deal attivi (panoramica)",
+      label: "All active deals (overview)",
       input: { action: "search" },
     },
     {
-      label: "Deal in fase qualificata con close date",
+      label: "Deals in qualified stage within a close date range",
       input: { action: "search", stage: "qualifiedtobuy", closeDateAfter: "2026-04-01", closeDateBefore: "2026-06-30" },
     },
     {
-      label: "Deal di un contatto con custom properties",
+      label: "Deals of a contact with custom properties",
       input: { action: "search", associatedContactId: "12345", stage: "closedwon", returnProperties: ["plan_tier", "sla_class"], limit: 1 },
     },
   ],
   parameters: z.object({
-    action: z.enum(["create", "update", "search"]).describe("'create' per nuovo deal, 'update' per aggiornare un deal esistente, 'search' per cercare"),
+    action: z.enum(["create", "update", "search"]).describe("'create' for a new deal, 'update' to modify an existing deal, 'search' to query"),
       // --- update params ---
       dealId: z
         .string()
         .nullable()
-        .describe("ID del deal HubSpot da aggiornare (obbligatorio per update)"),
+        .describe("HubSpot deal ID to update (required for update)"),
       // --- create params ---
       dealName: z
         .string()
         .nullable()
-        .describe("Nome del deal (obbligatorio per create, es. 'Renewal Fibra 10Gbps - Acme Srl')"),
+        .describe("Deal name (required for create, e.g. 'Renewal — Acme Inc.')"),
       stage: z
         .string()
         .nullable()
-        .describe("Stage del pipeline (obbligatorio per create, es. 'appointmentscheduled', 'qualifiedtobuy', 'closedwon')"),
+        .describe("Pipeline stage (required for create, e.g. 'appointmentscheduled', 'qualifiedtobuy', 'closedwon')"),
       pipeline: z
         .string()
         .nullable()
-        .describe("Pipeline ID. Se null, usa il pipeline di default."),
+        .describe("Pipeline ID. If null, uses the default pipeline."),
       amount: z
         .number()
         .nullable()
-        .describe("Valore del deal in EUR"),
+        .describe("Deal value"),
       closeDate: z
         .string()
         .nullable()
-        .describe("Data chiusura prevista (ISO 8601). Se null, non impostata."),
+        .describe("Expected close date (ISO 8601). If null, not set."),
       contactId: z
         .string()
         .nullable()
-        .describe("ID contatto HubSpot da associare al deal"),
+        .describe("HubSpot contact ID to associate with the deal"),
       companyId: z
         .string()
         .nullable()
-        .describe("ID azienda HubSpot da associare al deal"),
+        .describe("HubSpot company ID to associate with the deal"),
       description: z
         .string()
         .nullable()
-        .describe("Note o descrizione del deal"),
+        .describe("Notes or deal description"),
       // --- search params ---
       query: z
         .string()
         .nullable()
-        .describe("Testo libero da cercare nel nome del deal (solo per search)"),
+        .describe("Free-text query against the deal name (search only)"),
       closeDateAfter: z
         .string()
         .nullable()
-        .describe("Data chiusura dopo questa data (ISO 8601, solo per search)"),
+        .describe("Close date on or after this date (ISO 8601, search only)"),
       closeDateBefore: z
         .string()
         .nullable()
-        .describe("Data chiusura prima di questa data (ISO 8601, solo per search)"),
+        .describe("Close date on or before this date (ISO 8601, search only)"),
       createdAfter: z
         .string()
         .nullable()
-        .describe("Creato dopo questa data (ISO 8601, solo per search)"),
+        .describe("Created on or after this date (ISO 8601, search only)"),
       limit: z
         .number()
         .nullable()
-        .describe("Numero massimo di risultati (default 20, max 100, solo per search)"),
+        .describe("Maximum number of results (default 20, max 100, search only)"),
       associatedContactId: z
         .string()
         .nullable()
-        .describe("Filtra i deal associati a questo contactId HubSpot (solo per search). Usa per trovare lo storico acquisti di un cliente esistente."),
+        .describe("Filter deals associated with this HubSpot contactId (search only). Use to find purchase history of an existing customer."),
       returnProperties: z
         .array(z.string())
         .nullable()
         .describe(
-          "Proprietà aggiuntive da includere nella response della action 'search' (es. ['plan_tier','sla_class']). " +
-          "I valori verranno esposti nel campo 'customProperties' di ogni deal. " +
-          "Ignorato per create/update.",
+          "Extra properties to include in the 'search' response (e.g. ['plan_tier','sla_class']). " +
+          "The values are exposed under each deal's 'customProperties' field. " +
+          "Ignored for create/update.",
         ),
     }),
   execute: async (
@@ -171,7 +171,7 @@ async function createDeal(
   },
 ) {
   if (!params.dealName || !params.stage) {
-    return { error: "dealName e stage sono obbligatori per l'azione 'create'." };
+    return { error: "dealName and stage are required for action 'create'." };
   }
 
   try {
@@ -200,7 +200,7 @@ async function createDeal(
 
     if (!createResponse.ok) {
       const respBody = await createResponse.text();
-      return { error: `Errore creazione deal (${createResponse.status}): ${respBody.slice(0, 200)}` };
+      return { error: `Deal creation failed (${createResponse.status}): ${respBody.slice(0, 200)}` };
     }
 
     const deal = (await createResponse.json()) as {
@@ -234,7 +234,7 @@ async function createDeal(
 
       if (!assocRes.ok) {
         const body = await assocRes.text();
-        warnings.push(`Associazione contatto fallita: ${body.slice(0, 100)}`);
+        warnings.push(`Contact association failed: ${body.slice(0, 100)}`);
       }
     }
 
@@ -262,7 +262,7 @@ async function createDeal(
 
       if (!assocRes.ok) {
         const body = await assocRes.text();
-        warnings.push(`Associazione azienda fallita: ${body.slice(0, 100)}`);
+        warnings.push(`Company association failed: ${body.slice(0, 100)}`);
       }
     }
 
@@ -291,7 +291,7 @@ async function createDeal(
         url: hubspotUrl(portalId, "deal", deal.id),
       },
       ...(warnings.length > 0 ? { warnings } : {}),
-      message: "Deal creato con successo.",
+      message: "Deal created successfully.",
     };
   } catch (err) {
     ctx.audit.log({
@@ -300,7 +300,7 @@ async function createDeal(
       success: false,
       error: errMsg(err),
     });
-    return { error: `Errore creazione deal: ${errMsg(err)}` };
+    return { error: `Deal creation failed: ${errMsg(err)}` };
   }
 }
 
@@ -322,7 +322,7 @@ async function updateDeal(
   },
 ) {
   if (!params.dealId) {
-    return { error: "dealId è obbligatorio per l'azione 'update'." };
+    return { error: "dealId is required for action 'update'." };
   }
 
   try {
@@ -335,7 +335,7 @@ async function updateDeal(
     if (params.description) properties.description = params.description;
 
     if (Object.keys(properties).length === 0) {
-      return { error: "Specifica almeno un campo da aggiornare (stage, amount, closeDate, description, dealName)." };
+      return { error: "Provide at least one field to update (stage, amount, closeDate, description, dealName)." };
     }
 
     const response = await hubspotFetch(
@@ -352,7 +352,7 @@ async function updateDeal(
 
     if (!response.ok) {
       const body = await response.text();
-      return { error: `Errore aggiornamento deal (${response.status}): ${body.slice(0, 200)}` };
+      return { error: `Deal update failed (${response.status}): ${body.slice(0, 200)}` };
     }
 
     const deal = (await response.json()) as {
@@ -381,7 +381,7 @@ async function updateDeal(
         closeDate: deal.properties.closedate,
         url: hubspotUrl(portalId, "deal", deal.id),
       },
-      message: "Deal aggiornato con successo.",
+      message: "Deal updated successfully.",
     };
   } catch (err) {
     ctx.audit.log({
@@ -390,7 +390,7 @@ async function updateDeal(
       success: false,
       error: errMsg(err),
     });
-    return { error: `Errore aggiornamento deal: ${errMsg(err)}` };
+    return { error: `Deal update failed: ${errMsg(err)}` };
   }
 }
 

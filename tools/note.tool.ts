@@ -12,78 +12,78 @@ import { ensureHtmlBody } from "../lib/hubspot-rich-text.js";
 export default defineTool({
   name: "note",
   description:
-    "Gestisce note del CRM HubSpot (action: create | search | update).\n" +
-    "Per identificare il contatto puoi passare indifferentemente contactId OPPURE phone (E.164, es. '+393331234567'): se passi solo phone il tool risolve automaticamente il contactId.\n" +
-    "In 'search' con contactId/phone ottieni solo le note di quel contatto. In 'update' passa noteId e body (sovrascrive il precedente).\n" +
-    "Per un profilo aggiornabile del contatto: search → create se non c'è, update se esiste. Mai duplicati.",
+    "Manage notes in the HubSpot CRM (action: create | search | update).\n" +
+    "To identify the contact you can pass contactId OR phone (E.164, e.g. '+14155550100'): if you only pass phone, the tool resolves the contactId automatically.\n" +
+    "In 'search' with contactId/phone you only get the notes for that contact. In 'update' pass noteId and body (overwrites the previous body).\n" +
+    "For an updatable contact profile: search → create if missing, update if present. Never duplicate.",
   category: "crm",
   requiredSecrets: ["hubspot_api_key"],
   inputExamples: [
     {
-      label: "Nota associata a contatto e deal (via contactId)",
-      input: { action: "create", body: "Brief: il contatto e' interessato al piano Premium", contactId: "12345", dealId: "67890" },
+      label: "Note associated with contact and deal (via contactId)",
+      input: { action: "create", body: "Brief: the contact is interested in the Premium plan", contactId: "12345", dealId: "67890" },
     },
     {
-      label: "Cerca note di un contatto identificato da phone",
-      input: { action: "search", phone: "+390000000001", query: "[CONTACT_PROFILE]", limit: 5 },
+      label: "Search notes of a contact identified by phone",
+      input: { action: "search", phone: "+14155550100", query: "[CONTACT_PROFILE]", limit: 5 },
     },
     {
-      label: "Crea nota associata a contatto identificato da phone",
-      input: { action: "create", body: "<p>…</p>", phone: "+390000000001" },
+      label: "Create note associated with contact identified by phone",
+      input: { action: "create", body: "<p>…</p>", phone: "+14155550100" },
     },
     {
-      label: "Aggiorna corpo di nota esistente",
-      input: { action: "update", noteId: "987654321", body: "[CONTACT_PROFILE]\nLast updated: 2026-04-20\nPreferences: vegano" },
+      label: "Update body of an existing note",
+      input: { action: "update", noteId: "987654321", body: "[CONTACT_PROFILE]\nLast updated: 2026-04-20\nPreferences: vegan" },
     },
   ],
   parameters: z.object({
-    action: z.enum(["create", "search", "update"]).describe("'create' per nuova nota, 'search' per cercare, 'update' per modificare una nota esistente"),
+    action: z.enum(["create", "search", "update"]).describe("'create' for a new note, 'search' to query, 'update' to modify an existing note"),
       // --- create + update params ---
       body: z
         .string()
         .nullable()
-        .describe("Contenuto della nota (obbligatorio per create e update). Per update sovrascrive il body precedente."),
+        .describe("Note body (required for create and update). For update, overwrites the previous body."),
       noteId: z
         .string()
         .nullable()
-        .describe("ID della nota da aggiornare (obbligatorio per update)"),
+        .describe("Note ID to update (required for update)"),
       contactId: z
         .string()
         .nullable()
-        .describe("ID contatto HubSpot. Per 'create' = associazione; per 'search' = filtro server-side (ritorna SOLO note associate a questo contatto). Alternativa: passa 'phone' e il tool risolve automaticamente contactId."),
+        .describe("HubSpot contact ID. For 'create' = association; for 'search' = server-side filter (returns ONLY notes associated with this contact). Alternative: pass 'phone' and the tool resolves contactId automatically."),
       phone: z
         .string()
         .nullable()
-        .describe("Phone del contatto in formato E.164 (es. '+393331234567'). Alternativa a contactId per 'search' e 'create': il tool fa il lookup internamente. Ignorato se contactId è già specificato. Ignorato per 'update'."),
+        .describe("Contact phone in E.164 format (e.g. '+14155550100'). Alternative to contactId for 'search' and 'create': the tool performs the lookup internally. Ignored when contactId is already provided. Ignored for 'update'."),
       dealId: z
         .string()
         .nullable()
-        .describe("ID deal HubSpot da associare (solo per create)"),
+        .describe("HubSpot deal ID to associate with (create only)"),
       companyId: z
         .string()
         .nullable()
-        .describe("ID azienda HubSpot da associare (solo per create)"),
+        .describe("HubSpot company ID to associate with (create only)"),
       ticketId: z
         .string()
         .nullable()
-        .describe("ID ticket HubSpot da associare (solo per create)"),
+        .describe("HubSpot ticket ID to associate with (create only)"),
       // --- search params ---
       query: z
         .string()
         .nullable()
-        .describe("Free-text search nel corpo delle note (solo per search)"),
+        .describe("Free-text search inside note bodies (search only)"),
       createdAfter: z
         .string()
         .nullable()
-        .describe("Notes created after this date (ISO 8601, solo per search)"),
+        .describe("Notes created after this date (ISO 8601, search only)"),
       createdBefore: z
         .string()
         .nullable()
-        .describe("Notes created before this date (ISO 8601, solo per search)"),
+        .describe("Notes created before this date (ISO 8601, search only)"),
       limit: z
         .number()
         .nullable()
-        .describe("Maximum number of results (default 20, max 100, solo per search)"),
+        .describe("Maximum number of results (default 20, max 100, search only)"),
     }),
   execute: async (
     params: {
@@ -112,7 +112,7 @@ export default defineTool({
     if (!resolvedContactId && params.phone && params.action !== "update") {
       resolvedContactId = await resolveContactIdFromPhone(apiKey, params.phone);
       if (!resolvedContactId) {
-        return { error: `Nessun contatto trovato in HubSpot con phone "${params.phone}".` };
+        return { error: `No contact found in HubSpot with phone "${params.phone}".` };
       }
     }
     const paramsWithResolvedContact = { ...params, contactId: resolvedContactId };
@@ -141,7 +141,7 @@ async function createNote(
   },
 ) {
   if (!params.body) {
-    return { error: "body e' obbligatorio per l'azione 'create'." };
+    return { error: "body is required for action 'create'." };
   }
 
   try {
@@ -167,7 +167,7 @@ async function createNote(
 
     if (!createResponse.ok) {
       const respBody = await createResponse.text();
-      return { error: `Errore creazione nota (${createResponse.status}): ${respBody.slice(0, 200)}` };
+      return { error: `Note creation failed (${createResponse.status}): ${respBody.slice(0, 200)}` };
     }
 
     const note = (await createResponse.json()) as {
@@ -195,7 +195,7 @@ async function createNote(
       );
       if (!res.ok) {
         const b = await res.text();
-        warnings.push(`Associazione contatto fallita: ${b.slice(0, 100)}`);
+        warnings.push(`Contact association failed: ${b.slice(0, 100)}`);
       }
     }
 
@@ -213,7 +213,7 @@ async function createNote(
       );
       if (!res.ok) {
         const b = await res.text();
-        warnings.push(`Associazione deal fallita: ${b.slice(0, 100)}`);
+        warnings.push(`Deal association failed: ${b.slice(0, 100)}`);
       }
     }
 
@@ -231,7 +231,7 @@ async function createNote(
       );
       if (!res.ok) {
         const b = await res.text();
-        warnings.push(`Associazione azienda fallita: ${b.slice(0, 100)}`);
+        warnings.push(`Company association failed: ${b.slice(0, 100)}`);
       }
     }
 
@@ -249,7 +249,7 @@ async function createNote(
       );
       if (!res.ok) {
         const b = await res.text();
-        warnings.push(`Associazione ticket fallita: ${b.slice(0, 100)}`);
+        warnings.push(`Ticket association failed: ${b.slice(0, 100)}`);
       }
     }
 
@@ -277,7 +277,7 @@ async function createNote(
         ...(params.contactId ? { contactUrl: hubspotUrl(portalId, "contact", params.contactId) } : {}),
       },
       ...(warnings.length > 0 ? { warnings } : {}),
-      message: "Nota creata e associata con successo.",
+      message: "Note created and associated successfully.",
     };
   } catch (err) {
     ctx.audit.log({
@@ -286,7 +286,7 @@ async function createNote(
       success: false,
       error: errMsg(err),
     });
-    return { error: `Errore creazione nota: ${errMsg(err)}` };
+    return { error: `Note creation failed: ${errMsg(err)}` };
   }
 }
 
@@ -494,10 +494,10 @@ async function updateNote(
   },
 ) {
   if (!params.noteId) {
-    return { error: "noteId e' obbligatorio per l'azione 'update'." };
+    return { error: "noteId is required for action 'update'." };
   }
   if (!params.body) {
-    return { error: "body e' obbligatorio per l'azione 'update'." };
+    return { error: "body is required for action 'update'." };
   }
 
   try {
@@ -521,7 +521,7 @@ async function updateNote(
 
     if (!res.ok) {
       const respBody = await res.text();
-      return { error: `Errore aggiornamento nota (${res.status}): ${respBody.slice(0, 200)}` };
+      return { error: `Note update failed (${res.status}): ${respBody.slice(0, 200)}` };
     }
 
     const note = (await res.json()) as {
@@ -538,7 +538,7 @@ async function updateNote(
     return {
       success: true,
       note: { id: note.id, lastModified: note.properties.hs_lastmodifieddate ?? null },
-      message: "Nota aggiornata con successo.",
+      message: "Note updated successfully.",
     };
   } catch (err) {
     ctx.audit.log({
@@ -547,7 +547,7 @@ async function updateNote(
       success: false,
       error: errMsg(err),
     });
-    return { error: `Errore aggiornamento nota: ${errMsg(err)}` };
+    return { error: `Note update failed: ${errMsg(err)}` };
   }
 }
 

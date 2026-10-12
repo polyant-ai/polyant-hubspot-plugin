@@ -10,30 +10,30 @@ import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
 export default defineTool({
   name: "sendEmail",
   description:
-    "Invia un'email tracciata via HubSpot e la associa a un contatto nel CRM.\n" +
-    "Usa per email di follow-up, outreach, comunicazioni commerciali o notifiche. L'email viene registrata nella timeline del contatto.\n" +
-    "NON usare per creare note — usa hubspot__note.\n" +
-    "NON usare per comunicazioni via canali (Telegram, Slack) — usa i canali configurati.\n" +
-    "Restituisce ID dell'email inviata e URL nel portale HubSpot.\n" +
-    "Caveat: richiede contactId (il contatto deve avere un'email). Il body supporta HTML.",
+    "Send a tracked email via HubSpot and associate it with a CRM contact.\n" +
+    "Use for follow-up emails, outreach, commercial communications or notifications. The email is recorded in the contact's timeline.\n" +
+    "Do NOT use this tool to create notes — use hubspot__note.\n" +
+    "Do NOT use this tool for messaging channels (Telegram, Slack) — use the configured channels.\n" +
+    "Returns the sent email ID and its URL in the HubSpot portal.\n" +
+    "Caveat: requires contactId (the contact must have an email). The body supports HTML.",
   category: "crm",
   requiredSecrets: ["hubspot_api_key"],
   inputExamples: [
     {
-      label: "Email di follow-up",
-      input: { contactId: "12345", subject: "Seguito alla nostra conversazione", body: "Gentile Mario, come concordato le invio il riepilogo..." },
+      label: "Follow-up email",
+      input: { contactId: "12345", subject: "Following up on our conversation", body: "Hi Jane, as discussed, here is the summary..." },
     },
   ],
   parameters: z.object({
       contactId: z
         .string()
-        .describe("ID del contatto HubSpot destinatario (l'email viene associata automaticamente al contatto)"),
+        .describe("Recipient HubSpot contact ID (the email is automatically associated with the contact)"),
       subject: z
         .string()
-        .describe("Oggetto dell'email"),
+        .describe("Email subject"),
       body: z
         .string()
-        .describe("Corpo dell'email (testo o HTML)"),
+        .describe("Email body (text or HTML)"),
     }),
   execute: async (params: {
       contactId: string;
@@ -47,7 +47,7 @@ export default defineTool({
       try {
         // 1. Create the email engagement
         // Note: hs_email_to_email, hs_email_from_email, hs_email_sender_email
-        // are READ-ONLY properties in HubSpot API — they cannot be set via API.
+        // are READ-ONLY in the HubSpot API — they cannot be set via API.
         // The association (step 2) links the email to the contact instead.
         const emailProperties: Record<string, string> = {
           hs_email_subject: params.subject,
@@ -72,7 +72,7 @@ export default defineTool({
 
         if (!createResponse.ok) {
           const respBody = await createResponse.text();
-          return { error: `Errore creazione email (${createResponse.status}): ${respBody.slice(0, 200)}` };
+          return { error: `Email creation failed (${createResponse.status}): ${respBody.slice(0, 200)}` };
         }
 
         const email = (await createResponse.json()) as {
@@ -105,7 +105,7 @@ export default defineTool({
           const respBody = await assocResponse.text();
           return {
             success: true,
-            warning: `Email creata (ID: ${email.id}) ma associazione al contatto fallita: ${respBody.slice(0, 200)}`,
+            warning: `Email created (ID: ${email.id}) but association to the contact failed: ${respBody.slice(0, 200)}`,
             email: { id: email.id, subject: params.subject },
           };
         }
@@ -129,7 +129,7 @@ export default defineTool({
             subject: params.subject,
             contactUrl: hubspotUrl(portalId, "contact", params.contactId),
           },
-          message: "Email inviata e registrata nella timeline del contatto.",
+          message: "Email sent and recorded in the contact timeline.",
         };
       } catch (err) {
         ctx.audit.log({
@@ -141,7 +141,7 @@ export default defineTool({
           success: false,
           error: errMsg(err),
         });
-        return { error: `Errore invio email: ${errMsg(err)}` };
+        return { error: `Email send failed: ${errMsg(err)}` };
       }
     },
 });

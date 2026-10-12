@@ -11,23 +11,23 @@ import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
 export default defineTool({
   name: "meeting",
   description:
-    "Gestisce gli appuntamenti (meeting) nel CRM HubSpot: crea, recupera o aggiorna meeting.\n" +
-    "Usa con action 'create' per nuovi appuntamenti, 'get' per recuperare quelli di un contatto, 'update' per modificarli.\n" +
-    "Restituisce ID del meeting e URL nel portale HubSpot.\n" +
-    "Caveat: per 'create', startTime e endTime in formato ISO 8601, contactId obbligatorio. Per 'get', mostra appuntamenti futuri e quelli degli ultimi 30 giorni. Per 'update', solo le proprieta' passate vengono aggiornate.",
+    "Manage meetings (appointments) in the HubSpot CRM: create, retrieve or update meetings.\n" +
+    "Use action 'create' for new meetings, 'get' to list a contact's meetings, 'update' to modify them.\n" +
+    "Returns the meeting ID and its URL in the HubSpot portal.\n" +
+    "Caveat: for 'create', startTime and endTime must be ISO 8601 and contactId is required. For 'get', returns future meetings plus those from the last 30 days. For 'update', only properties explicitly passed are updated.",
   category: "crm",
   requiredSecrets: ["hubspot_api_key"],
   inputExamples: [
     {
-      label: "Crea appuntamento",
-      input: { action: "create", contactId: "12345", title: "Consulenza iniziale", startTime: "2026-04-15T10:00:00.000Z", endTime: "2026-04-15T10:30:00.000Z" },
+      label: "Create a meeting",
+      input: { action: "create", contactId: "12345", title: "Intro call", startTime: "2026-04-15T10:00:00.000Z", endTime: "2026-04-15T10:30:00.000Z" },
     },
     {
-      label: "Recupera appuntamenti di un contatto",
+      label: "Get a contact's meetings",
       input: { action: "get", contactId: "12345" },
     },
     {
-      label: "Aggiorna esito meeting",
+      label: "Update the outcome of a meeting",
       input: {
         action: "update",
         meetingId: "67890",
@@ -41,55 +41,55 @@ export default defineTool({
     },
   ],
   parameters: z.object({
-    action: z.enum(["create", "get", "update"]).describe("'create' per nuovo meeting, 'get' per recuperare, 'update' per aggiornare"),
+    action: z.enum(["create", "get", "update"]).describe("'create' for a new meeting, 'get' to retrieve, 'update' to modify"),
       // --- create params ---
       contactId: z
         .string()
         .nullable()
-        .describe("ID del contatto HubSpot (obbligatorio per create e get)"),
+        .describe("HubSpot contact ID (required for create and get)"),
       title: z
         .string()
         .nullable()
-        .describe("Titolo dell'appuntamento (obbligatorio per create)"),
+        .describe("Meeting title (required for create)"),
       startTime: z
         .union([z.string(), z.number()])
         .nullable()
-        .describe("Data e ora inizio: stringa ISO 8601 oppure millisecondi epoch (obbligatorio per create)"),
+        .describe("Start date/time: ISO 8601 string or epoch milliseconds (required for create)"),
       endTime: z
         .union([z.string(), z.number()])
         .nullable()
-        .describe("Data e ora fine: stringa ISO 8601 oppure millisecondi epoch (obbligatorio per create)"),
+        .describe("End date/time: ISO 8601 string or epoch milliseconds (required for create)"),
       description: z
         .string()
         .nullable()
-        .describe("Descrizione o note sull'appuntamento (solo per create)"),
+        .describe("Meeting description or notes (create only)"),
       location: z
         .string()
         .nullable()
-        .describe("Sede dell'appuntamento (solo per create)"),
+        .describe("Meeting location (create only)"),
       // --- update params ---
       meetingId: z
         .string()
         .nullable()
-        .describe("ID del meeting HubSpot da aggiornare (obbligatorio per update)"),
+        .describe("HubSpot meeting ID to update (required for update)"),
       properties: z.object({
         hs_meeting_outcome: z
           .string()
           .nullable()
-          .describe("Esito del meeting (es. 'COMPLETED', 'CANCELED', 'RESCHEDULED', 'NO_SHOW')"),
+          .describe("Meeting outcome (e.g. 'COMPLETED', 'CANCELED', 'RESCHEDULED', 'NO_SHOW')"),
         hs_meeting_start_time: z
           .string()
           .nullable()
-          .describe("Data/ora inizio in formato ISO 8601"),
+          .describe("Start date/time in ISO 8601 format"),
         hs_meeting_end_time: z
           .string()
           .nullable()
-          .describe("Data/ora fine in formato ISO 8601"),
+          .describe("End date/time in ISO 8601 format"),
         hs_meeting_title: z
           .string()
           .nullable()
-          .describe("Titolo del meeting"),
-      }).nullable().describe("Proprietà del meeting da aggiornare (solo per update)"),
+          .describe("Meeting title"),
+      }).nullable().describe("Meeting properties to update (update only)"),
     }),
   execute: async (
     params: {
@@ -116,14 +116,14 @@ export default defineTool({
 
     if (params.action === "get") {
       if (!params.contactId) {
-        return { error: "contactId obbligatorio per l'azione 'get'." };
+        return { error: "contactId is required for action 'get'." };
       }
       return getMeetings(ctx, apiKey, params.contactId);
     }
 
     if (params.action === "update") {
       if (!params.meetingId) {
-        return { error: "meetingId obbligatorio per l'azione 'update'." };
+        return { error: "meetingId is required for action 'update'." };
       }
       return updateMeeting(ctx, apiKey, params.meetingId, params.properties);
     }
@@ -145,7 +145,7 @@ async function createMeeting(
   },
 ) {
   if (!params.contactId || !params.title || params.startTime == null || params.endTime == null) {
-    return { error: "contactId, title, startTime e endTime sono obbligatori per l'azione 'create'." };
+    return { error: "contactId, title, startTime and endTime are required for action 'create'." };
   }
 
   const { contactId, title, startTime, endTime, description, location } = params;
@@ -155,10 +155,10 @@ async function createMeeting(
     const start = typeof startTime === "number" ? new Date(startTime) : new Date(startTime);
     const end = typeof endTime === "number" ? new Date(endTime) : new Date(endTime);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return { error: "Formato data/ora non valido. Usa ISO 8601 (es. 2026-03-20T10:00:00) oppure millisecondi epoch." };
+      return { error: "Invalid date/time format. Use ISO 8601 (e.g. 2026-03-20T10:00:00) or epoch milliseconds." };
     }
     if (end <= start) {
-      return { error: "L'ora di fine deve essere successiva all'ora di inizio." };
+      return { error: "End time must be after start time." };
     }
 
     // 1. Create the meeting engagement
@@ -187,7 +187,7 @@ async function createMeeting(
 
     if (!createResponse.ok) {
       const body = await createResponse.text();
-      return { error: `Errore creazione meeting (${createResponse.status}): ${body.slice(0, 200)}` };
+      return { error: `Meeting creation failed (${createResponse.status}): ${body.slice(0, 200)}` };
     }
 
     const meeting = (await createResponse.json()) as {
@@ -234,7 +234,7 @@ async function createMeeting(
 
       return {
         success: true,
-        warning: `Meeting creato (ID: ${meeting.id}) ma associazione al contatto fallita: ${body.slice(0, 200)}`,
+        warning: `Meeting created (ID: ${meeting.id}) but association to the contact failed: ${body.slice(0, 200)}`,
         meeting: {
           id: meeting.id,
           title,
@@ -268,7 +268,7 @@ async function createMeeting(
         location: location ?? null,
         contactUrl: hubspotUrl(portalId, "contact", contactId),
       },
-      message: `Appuntamento creato con successo per ${start.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })} alle ${start.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}.`,
+      message: `Meeting created successfully for ${start.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })} at ${start.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}.`,
     };
   } catch (err) {
     ctx.audit.log({
@@ -277,7 +277,7 @@ async function createMeeting(
       success: false,
       error: errMsg(err),
     });
-    return { error: `Errore creazione appuntamento: ${errMsg(err)}` };
+    return { error: `Meeting creation failed: ${errMsg(err)}` };
   }
 }
 
@@ -300,7 +300,7 @@ async function getMeetings(
 
     if (!assocResponse.ok) {
       const body = await assocResponse.text();
-      return { error: `Errore recupero associazioni meeting (${assocResponse.status}): ${body.slice(0, 200)}` };
+      return { error: `Failed to fetch meeting associations (${assocResponse.status}): ${body.slice(0, 200)}` };
     }
 
     const assocData = (await assocResponse.json()) as {
@@ -308,7 +308,7 @@ async function getMeetings(
     };
 
     if (!assocData.results || assocData.results.length === 0) {
-      return { found: 0, meetings: [], message: "Nessun appuntamento trovato per questo contatto." };
+      return { found: 0, meetings: [], message: "No meetings found for this contact." };
     }
 
     // 2. Batch read meeting details
@@ -337,7 +337,7 @@ async function getMeetings(
 
     if (!batchResponse.ok) {
       const body = await batchResponse.text();
-      return { error: `Errore recupero dettagli meeting (${batchResponse.status}): ${body.slice(0, 200)}` };
+      return { error: `Failed to fetch meeting details (${batchResponse.status}): ${body.slice(0, 200)}` };
     }
 
     const batchData = (await batchResponse.json()) as {
@@ -383,7 +383,7 @@ async function getMeetings(
 
         return {
           id: m.id,
-          title: m.properties.hs_meeting_title ?? "Senza titolo",
+          title: m.properties.hs_meeting_title ?? "Untitled",
           date: dateFormatter.format(startDate),
           startTime: timeFormatter.format(startDate),
           endTime: endDate ? timeFormatter.format(endDate) : null,
@@ -420,7 +420,7 @@ async function getMeetings(
       success: false,
       error: errMsg(err),
     });
-    return { error: `Errore recupero appuntamenti: ${errMsg(err)}` };
+    return { error: `Failed to fetch meetings: ${errMsg(err)}` };
   }
 }
 
@@ -448,7 +448,7 @@ async function updateMeeting(
   if (Object.keys(filteredProperties).length === 0) {
     return {
       error:
-        "Specifica almeno una proprietà da aggiornare " +
+        "Provide at least one property to update " +
         "(hs_meeting_outcome, hs_meeting_start_time, hs_meeting_end_time, hs_meeting_title).",
     };
   }

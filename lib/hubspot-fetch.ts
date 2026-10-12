@@ -42,7 +42,7 @@ export async function hubspotFetch(
  */
 export function getHubSpotApiKeyOrError(ctx: ToolContext): string | { error: string } {
   const apiKey = ctx.secrets?.["hubspot_api_key"];
-  if (!apiKey) return { error: "HubSpot API key non configurata. Configura la chiave nelle impostazioni dell'istanza." };
+  if (!apiKey) return { error: "HubSpot API key not configured. Set the key in the instance settings." };
   return apiKey;
 }
 

@@ -15,22 +15,22 @@ const NOTES_API = "https://api.hubapi.com/crm/v3/objects/notes";
 export default defineTool({
   name: "file",
   description:
-    "Tool multi-action per HubSpot Files. Discriminatore: `action`.\n\n" +
-    "action='upload' (default se action è null/omesso):\n" +
-    "  Carica un file su HubSpot Files (Files API v3). Consuma un fileHandle prodotto da un tool che genera file (es. extra__markdownToPdf) (one-shot, valido 10 minuti).\n" +
-    "  Con access=PUBLIC_NOT_INDEXABLE il file ha un URL pubblico utilizzabile come allegato (es. mediaUrl WhatsApp).\n" +
-    "  Se passi associateContactId, il file viene ASSOCIATO al contatto (visibile nella scheda Attachments del contact in HubSpot UI), SENZA creare nessuna nota.\n" +
-    "  Se passi associateContactId E noteBody, oltre all'association viene anche creata una Note engagement con il body HTML fornito. Il body supporta i placeholder {{FILE_URL}} e {{FILENAME}} che vengono sostituiti dal tool con l'URL pubblico e il filename effettivi.\n\n" +
+    "Multi-action tool for HubSpot Files. Discriminator: `action`.\n\n" +
+    "action='upload' (default when action is null/omitted):\n" +
+    "  Uploads a file to HubSpot Files (Files API v3). Consumes a fileHandle produced by a tool that generates files (e.g. extra__markdownToPdf) (one-shot, valid 10 minutes).\n" +
+    "  With access=PUBLIC_NOT_INDEXABLE the file has a public URL usable as an attachment (e.g. a WhatsApp mediaUrl).\n" +
+    "  If you pass associateContactId, the file is ASSOCIATED with the contact (visible in the contact's Attachments tab in the HubSpot UI), WITHOUT creating any note.\n" +
+    "  If you pass associateContactId AND noteBody, besides the association a Note engagement is also created with the provided HTML body. The body supports the {{FILE_URL}} and {{FILENAME}} placeholders, which the tool replaces with the actual public URL and filename.\n\n" +
     "action='search':\n" +
-    "  Recupera l'UNICO PDF associato a un contatto. Richiede associateContactId. Tutti gli altri parametri sono ignorati.\n" +
-    "  Cerca in entrambe le forme HubSpot: (a) file→contact associations dirette, (b) note engagement con hs_attachment_ids (caso 'Add attachment' da UI HubSpot). Unione + dedupe, poi filtra per estensione 'pdf' — altri file (immagini profilo, screenshot, doc misti) vengono ignorati.\n" +
-    "  Esiti: { success: true, fileId, filename, publicUrl, createdAt } se trovato esattamente 1 PDF.\n" +
-    "  Esito errore con errorCode='NOT_FOUND' se 0 PDF. Esito errore con errorCode='MULTIPLE_FOUND' (+ campo count) se >1 PDF: il caso d'uso prevede 1:1 contatto↔PDF.",
+    "  Retrieves the SINGLE PDF associated with a contact. Requires associateContactId. All other parameters are ignored.\n" +
+    "  Searches both HubSpot shapes: (a) direct file→contact associations, (b) note engagements with hs_attachment_ids (the 'Add attachment' case from the HubSpot UI). Union + dedupe, then filters by 'pdf' extension — other files (profile pictures, screenshots, mixed docs) are ignored.\n" +
+    "  Outcomes: { success: true, fileId, filename, publicUrl, createdAt } if exactly 1 PDF is found.\n" +
+    "  Error outcome with errorCode='NOT_FOUND' if 0 PDFs. Error outcome with errorCode='MULTIPLE_FOUND' (+ count field) if >1 PDFs: the use case assumes a 1:1 contact↔PDF mapping.",
   category: "crm",
   requiredSecrets: ["hubspot_api_key"],
   inputExamples: [
     {
-      label: "Upload PDF e associa file→contatto (no nota)",
+      label: "Upload PDF and associate file→contact (no note)",
       input: {
         action: "upload",
         fileHandle: "artifact_<uuid>",
@@ -40,17 +40,17 @@ export default defineTool({
       },
     },
     {
-      label: "Upload con nota custom + placeholder",
+      label: "Upload with a custom note + placeholders",
       input: {
         action: "upload",
         fileHandle: "artifact_<uuid>",
         filename: "contratto.pdf",
         associateContactId: "12345",
-        noteBody: "<p>Contratto inviato il 2026-05-11: <a href=\"{{FILE_URL}}\">{{FILENAME}}</a></p>",
+        noteBody: "<p>Contract sent on 2026-05-11: <a href=\"{{FILE_URL}}\">{{FILENAME}}</a></p>",
       },
     },
     {
-      label: "Search: recupera il singolo file associato al contatto",
+      label: "Search: retrieve the single file associated with the contact",
       input: {
         action: "search",
         associateContactId: "780919107780",
@@ -61,31 +61,31 @@ export default defineTool({
       action: z
         .enum(["upload", "search"])
         .nullable()
-        .describe("Discriminatore. 'upload' (default se null) carica un file via fileHandle. 'search' recupera l'unico file associato a un contatto (richiede associateContactId)."),
+        .describe("Discriminator. 'upload' (default when null) uploads a file via fileHandle. 'search' retrieves the single file associated with a contact (requires associateContactId)."),
       fileHandle: z
         .string()
         .nullable()
-        .describe("OBBLIGATORIO per action='upload'. Handle opaco restituito da un tool che genera file (es. extra__markdownToPdf) (consumato una sola volta). Ignorato per action='search'."),
+        .describe("REQUIRED for action='upload'. Opaque handle returned by a tool that generates files (e.g. extra__markdownToPdf) (consumed once). Ignored for action='search'."),
       filename: z
         .string()
         .nullable()
-        .describe("OBBLIGATORIO per action='upload'. Nome file su HubSpot (es. 'preventivo.pdf'). Estensione .pdf consigliata. Ignorato per action='search'."),
+        .describe("REQUIRED for action='upload'. File name on HubSpot (e.g. 'quote.pdf'). The .pdf extension is recommended. Ignored for action='search'."),
       access: z
         .enum(ACCESS_VALUES)
         .nullable()
-        .describe("Solo per action='upload'. Visibilità del file. Default PUBLIC_NOT_INDEXABLE. Ignorato per action='search'."),
+        .describe("Only for action='upload'. File visibility. Default PUBLIC_NOT_INDEXABLE. Ignored for action='search'."),
       folderPath: z
         .string()
         .nullable()
-        .describe("Solo per action='upload'. Cartella HubSpot di destinazione. Default '/polyant'. Ignorato per action='search'."),
+        .describe("Only for action='upload'. Destination HubSpot folder. Default '/polyant'. Ignored for action='search'."),
       associateContactId: z
         .string()
         .nullable()
-        .describe("Per action='upload': opzionale, associa il file al contatto. Per action='search': OBBLIGATORIO, identifica il contatto di cui recuperare il file."),
+        .describe("For action='upload': optional, associates the file with the contact. For action='search': REQUIRED, identifies the contact whose file to retrieve."),
       noteBody: z
         .string()
         .nullable()
-        .describe("Solo per action='upload'. Body HTML della Note engagement opzionale (richiede associateContactId). Supporta placeholder {{FILE_URL}} e {{FILENAME}}. Ignorato per action='search'."),
+        .describe("Only for action='upload'. HTML body of the optional Note engagement (requires associateContactId). Supports the {{FILE_URL}} and {{FILENAME}} placeholders. Ignored for action='search'."),
     }),
   execute: async (params: {
       action: "upload" | "search" | null;
@@ -108,10 +108,10 @@ export default defineTool({
 
       // action === "upload" — validate required params for this branch
       if (!params.fileHandle) {
-        return { error: "fileHandle obbligatorio per action='upload'." };
+        return { error: "fileHandle is required for action='upload'." };
       }
       if (!params.filename) {
-        return { error: "filename obbligatorio per action='upload'." };
+        return { error: "filename is required for action='upload'." };
       }
       // Narrowed locals so TypeScript propagates non-null through callbacks/closures below.
       const fileHandle: string = params.fileHandle;
@@ -125,11 +125,11 @@ export default defineTool({
       } catch (err) {
         // Only a dev-mode bridge can fail here (the in-process store never
         // throws): answer the model, do not abort the turn.
-        return { error: `fileHandle "${fileHandle}" non leggibile: ${err instanceof Error ? err.message : String(err)}` };
+        return { error: `fileHandle "${fileHandle}" unreadable: ${err instanceof Error ? err.message : String(err)}` };
       }
       if (!entry) {
         return {
-          error: `fileHandle "${fileHandle}" non trovato o scaduto. Rigenera il file (es. con extra__markdownToPdf) e riprova.`,
+          error: `fileHandle "${fileHandle}" not found or expired. Generate the file again (e.g. with extra__markdownToPdf) and retry.`,
         };
       }
 
@@ -149,7 +149,7 @@ export default defineTool({
           success: false,
           error: errMsg(err),
         });
-        return { error: `Errore upload HubSpot Files: ${errMsg(err)}` };
+        return { error: `HubSpot Files upload error: ${errMsg(err)}` };
       }
 
       ctx.audit.log({
@@ -179,7 +179,7 @@ export default defineTool({
             success: true,
           });
         } catch (err) {
-          warnings.push(`Association file→contact non creata: ${errMsg(err)}`);
+          warnings.push(`File→contact association not created: ${errMsg(err)}`);
           ctx.audit.log({
             action: "hubspot.fileAssociate",
             details: { fileId, contactId: params.associateContactId },
@@ -199,7 +199,7 @@ export default defineTool({
               success: true,
             });
           } catch (err) {
-            warnings.push(`Nota non creata: ${errMsg(err)}`);
+            warnings.push(`Note not created: ${errMsg(err)}`);
             ctx.audit.log({
               action: "hubspot.fileNote",
               details: { fileId, contactId: params.associateContactId },
@@ -387,7 +387,7 @@ async function searchFileForContact(
   | { error: string; errorCode?: "NOT_FOUND" | "MULTIPLE_FOUND"; contactId?: string; count?: number }
 > {
   if (!contactId) {
-    return { error: "associateContactId obbligatorio per action='search'." };
+    return { error: "associateContactId is required for action='search'." };
   }
 
   // ---------- Source A: direct file associations ----------
@@ -407,7 +407,7 @@ async function searchFileForContact(
         success: false,
         error: errMsg(err),
       });
-      return { error: `Errore HubSpot associations: ${errMsg(err)}` };
+      return { error: `HubSpot associations error: ${errMsg(err)}` };
     }
     if (!res.ok) {
       const body = await res.text();
@@ -443,7 +443,7 @@ async function searchFileForContact(
         success: false,
         error: errMsg(err),
       });
-      return { error: `Errore HubSpot note associations: ${errMsg(err)}` };
+      return { error: `HubSpot note associations error: ${errMsg(err)}` };
     }
     if (!res.ok) {
       const body = await res.text();
@@ -480,7 +480,7 @@ async function searchFileForContact(
           success: false,
           error: errMsg(err),
         });
-        return { error: `Errore HubSpot notes batch read: ${errMsg(err)}` };
+        return { error: `HubSpot notes batch read error: ${errMsg(err)}` };
       }
       if (!batchRes.ok) {
         const body = await batchRes.text();
@@ -517,7 +517,7 @@ async function searchFileForContact(
       error: "NOT_FOUND",
     });
     return {
-      error: "Nessun file associato al contatto.",
+      error: "No file associated with the contact.",
       errorCode: "NOT_FOUND",
       contactId,
     };
@@ -541,7 +541,7 @@ async function searchFileForContact(
         success: false,
         error: errMsg(err),
       });
-      return { error: `Errore HubSpot file metadata (${fileId}): ${errMsg(err)}` };
+      return { error: `HubSpot file metadata error (${fileId}): ${errMsg(err)}` };
     }
     if (!res.ok) {
       // Skip individual file fetch failures (file may have been deleted but the
@@ -576,7 +576,7 @@ async function searchFileForContact(
       error: "NOT_FOUND",
     });
     return {
-      error: "Nessun PDF associato al contatto.",
+      error: "No PDF associated with the contact.",
       errorCode: "NOT_FOUND",
       contactId,
     };
@@ -595,7 +595,7 @@ async function searchFileForContact(
       error: "MULTIPLE_FOUND",
     });
     return {
-      error: `Trovati ${pdfs.length} PDF associati al contatto (atteso 1).`,
+      error: `Found ${pdfs.length} PDFs associated with the contact (expected 1).`,
       errorCode: "MULTIPLE_FOUND",
       contactId,
       count: pdfs.length,

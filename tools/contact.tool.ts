@@ -23,27 +23,27 @@ const HUBSPOT_FILTER_OPERATORS = [
 export default defineTool({
   name: "contact",
   description:
-    "Crea, aggiorna o cerca contatti nel CRM HubSpot (action: create | update | search).\n" +
-    "In 'search' serve almeno uno tra phone, name, email, contactId (= get-by-id) o filters (telefono fuzzy); 'create' vuole almeno email o telefono per evitare duplicati; 'update' richiede contactId.\n" +
-    "Per proprietà custom del portale: customProperties in create/update, filters + returnProperties in search.\n" +
-    "Se la risposta include nextAfter, ripeti passando quel valore come after per paginare.",
+    "Create, update or search contacts in the HubSpot CRM (action: create | update | search).\n" +
+    "For 'search' you need at least one of phone, name, email, contactId (= get-by-id) or filters; 'create' requires at least email or phone to avoid duplicates; 'update' requires contactId.\n" +
+    "Portal custom properties: use customProperties in create/update, filters + returnProperties in search.\n" +
+    "If the response includes nextAfter, repeat passing that value as 'after' to paginate.",
   category: "crm",
   requiredSecrets: ["hubspot_api_key"],
   inputExamples: [
     {
-      label: "Cerca per telefono",
-      input: { action: "search", phone: "+39 333 1234567" },
+      label: "Search by phone",
+      input: { action: "search", phone: "+1 415 555 0100" },
     },
     {
-      label: "Crea nuovo contatto",
-      input: { action: "create", firstName: "Mario", lastName: "Rossi", phone: "+39 333 1234567", email: "mario@example.com" },
+      label: "Create a new contact",
+      input: { action: "create", firstName: "Jane", lastName: "Doe", phone: "+1 415 555 0100", email: "jane.doe@example.com" },
     },
     {
-      label: "Aggiorna telefono di un contatto esistente",
-      input: { action: "update", contactId: "12345", phone: "+39 333 9876543" },
+      label: "Update the phone number of an existing contact",
+      input: { action: "update", contactId: "12345", phone: "+1 415 555 0199" },
     },
     {
-      label: "Crea contatto con custom property 'evento'",
+      label: "Create a contact with a custom property",
       input: {
         action: "create",
         firstName: "Mario",
@@ -54,7 +54,7 @@ export default defineTool({
       },
     },
     {
-      label: "Cerca tutti i contatti di un evento",
+      label: "Search all contacts for an event",
       input: {
         action: "search",
         filters: [{ property: "evento", propertyName: null, operator: "EQ", value: "spring-conference-2026" }],
@@ -63,54 +63,54 @@ export default defineTool({
       },
     },
     {
-      label: "Pagina successiva di una ricerca",
+      label: "Next page of a search",
       input: {
         action: "search",
         filters: [{ property: "evento", propertyName: null, operator: "EQ", value: "spring-conference-2026" }],
         limit: 100,
-        after: "<valore nextAfter della chiamata precedente>",
+        after: "<nextAfter value from the previous call>",
       },
     },
     {
-      label: "Get-by-id (search per contactId)",
+      label: "Get-by-id (search by contactId)",
       input: { action: "search", contactId: "12345" },
     },
   ],
   parameters: z.object({
-    action: z.enum(["create", "update", "search"]).describe("'create' per nuovo contatto, 'update' per aggiornare, 'search' per cercare"),
+    action: z.enum(["create", "update", "search"]).describe("'create' for a new contact, 'update' to modify an existing one, 'search' to query"),
     contactId: z
       .string()
       .nullable()
       .describe(
-        "ID contatto HubSpot. Obbligatorio per 'update'. " +
-        "In 'search' è opzionale: se valorizzato equivale a un get-by-id (filtra per hs_object_id EQ).",
+        "HubSpot contact ID. Required for 'update'. " +
+        "Optional for 'search': when set it is treated as a get-by-id (filters on hs_object_id EQ).",
       ),
-    firstName: z.string().nullable().describe("Nome"),
-    lastName: z.string().nullable().describe("Cognome"),
-    phone: z.string().nullable().describe("Numero di telefono"),
-    email: z.string().nullable().describe("Email"),
+    firstName: z.string().nullable().describe("First name"),
+    lastName: z.string().nullable().describe("Last name"),
+    phone: z.string().nullable().describe("Phone number"),
+    email: z.string().nullable().describe("Email address"),
     companyId: z
       .string()
       .nullable()
-      .describe("ID azienda HubSpot da associare al contatto (opzionale per create)"),
+      .describe("HubSpot company ID to associate with the contact (optional, applies to 'create')"),
     name: z
       .string()
       .nullable()
-      .describe("Nome o cognome da cercare (solo per action 'search')"),
+      .describe("Name or surname to search by (only for action 'search')"),
     customProperties: z
       .record(z.string(), z.string())
       .nullable()
       .describe(
-        "Proprietà HubSpot arbitrarie da scrivere sul contatto (chiave = internal name property, valore = stringa). " +
-        "Usare per popolare custom properties già definite nel portale (es. { evento: 'spring-conference-2026' }). " +
-        "Non valido per action 'search'.",
+        "Arbitrary HubSpot properties to write on the contact (key = property internal name, value = string). " +
+        "Use to populate custom properties already defined in the portal (e.g. { event: 'spring-conference-2026' }). " +
+        "Not valid for action 'search'.",
       ),
-    // NOTE: schema piano (property/propertyName entrambi nullable). Il coalescing
-    // `property ?? propertyName` (con errore se mancano entrambi) è runtime in
-    // execute — NON in schema — perché `.preprocess()`/`.transform()` che lancia
-    // non è rappresentabile come JSON Schema statico (strict-mode). Il campo
-    // `property` è quello canonico; `propertyName` (nome REST HubSpot) è accettato
-    // per tolleranza verso i modelli. 
+    // NOTE: flat schema (property/propertyName both nullable). The coalescing
+    // `property ?? propertyName` (with an error when both are missing) runs at
+    // runtime in execute, NOT in the schema, because a throwing
+    // `.preprocess()`/`.transform()` cannot be represented as a static JSON
+    // Schema (strict mode). `property` is the canonical field; `propertyName`
+    // (the HubSpot REST name) is accepted for tolerance towards models.
     filters: z
       .array(
         z.object({
@@ -122,29 +122,29 @@ export default defineTool({
       )
       .nullable()
       .describe(
-        "Filtri aggiuntivi per action 'search'. Combinati in AND con phone/name/email se presenti, altrimenti formano un singolo filterGroup. " +
-        "Il campo del filtro è `property` (l'alias `propertyName` è accettato per tolleranza). " +
-        "Operatori supportati: EQ, NEQ, HAS_PROPERTY, NOT_HAS_PROPERTY, CONTAINS_TOKEN, GT, GTE, LT, LTE (solo operatori con value singolo — IN/NOT_IN non supportati). " +
-        "Esempio: [{ property: 'evento', operator: 'EQ', value: 'spring-conference-2026' }]",
+        "Additional filters for action 'search'. AND-combined with phone/name/email when present, otherwise they form a single filterGroup. " +
+        "The filter field is `property` (the `propertyName` alias is accepted for tolerance). " +
+        "Supported operators: EQ, NEQ, HAS_PROPERTY, NOT_HAS_PROPERTY, CONTAINS_TOKEN, GT, GTE, LT, LTE (single-value operators only — IN/NOT_IN not supported). " +
+        "Example: [{ property: 'event', operator: 'EQ', value: 'spring-conference-2026' }]",
       ),
     returnProperties: z
       .array(z.string())
       .nullable()
       .describe(
-        "Proprietà aggiuntive da includere nella response della action 'search' (es. ['evento']). " +
-        "I valori verranno esposti nel campo 'customProperties' di ogni contatto. " +
-        "Ignorato per create/update.",
+        "Extra properties to include in the 'search' response (e.g. ['event']). " +
+        "The values are exposed under each contact's 'customProperties' field. " +
+        "Ignored for create/update.",
       ),
     limit: z
       .number()
       .int()
       .positive()
       .nullable()
-      .describe("Numero massimo di risultati per 'search' (default 10, max 100). Ignorato per create/update."),
+      .describe("Maximum number of results for 'search' (default 10, max 100). Ignored for create/update."),
     after: z
       .string()
       .nullable()
-      .describe("Cursor di paginazione HubSpot per 'search'. Usare il valore 'nextAfter' della chiamata precedente."),
+      .describe("HubSpot pagination cursor for 'search'. Pass the 'nextAfter' value from the previous call."),
   }),
   execute: async (
     {
@@ -189,7 +189,7 @@ export default defineTool({
       for (const f of filters ?? []) {
         const property = f.property ?? f.propertyName;
         if (!property) {
-          return { error: "filters[].property è obbligatorio (puoi passarlo anche come 'propertyName')." };
+          return { error: "filters[].property is required (you can also pass it as 'propertyName')." };
         }
         normalizedFilters.push({ property, operator: f.operator, value: f.value });
       }
@@ -226,7 +226,7 @@ async function searchContacts(
   try {
     const filterGroups = buildFilterGroups(criteria);
     if (filterGroups.length === 0) {
-      return { error: "Specifica almeno un criterio di ricerca: contactId, telefono, nome, email o filters." };
+      return { error: "Provide at least one search criterion: contactId, phone, name, email or filters." };
     }
 
     const baseProperties = ["firstname", "lastname", "phone", "mobilephone", "email", "hs_object_id", "hubspot_owner_id"];
@@ -418,13 +418,13 @@ async function manageContact(
   const { action, contactId, firstName, lastName, phone, email, companyId, customProperties } = params;
 
   if (action === "update" && !contactId) {
-    return { error: "contactId obbligatorio per l'azione 'update'." };
+    return { error: "contactId is required for action 'update'." };
   }
 
   // Basic email format validation
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (email && !EMAIL_RE.test(email)) {
-    return { error: `Formato email non valido: '${email}'.` };
+    return { error: `Invalid email format: '${email}'.` };
   }
 
   try {
@@ -440,7 +440,7 @@ async function manageContact(
     }
 
     if (Object.keys(properties).length === 0) {
-      return { error: "Specifica almeno una proprieta' (firstName, lastName, phone, email, customProperties)." };
+      return { error: "Provide at least one property (firstName, lastName, phone, email, customProperties)." };
     }
 
     let url: string;
@@ -499,7 +499,7 @@ async function manageContact(
 
       if (!assocRes.ok) {
         const body = await assocRes.text();
-        warnings.push(`Associazione azienda fallita: ${body.slice(0, 100)}`);
+        warnings.push(`Company association failed: ${body.slice(0, 100)}`);
       }
     }
 

@@ -54,7 +54,7 @@ describe("hubspot:file", () => {
       associateContactId: null,
       noteBody: null,
     });
-    expect(result).toMatchObject({ error: expect.stringMatching(/non trovato|scaduto/) });
+    expect(result).toMatchObject({ error: expect.stringMatching(/not found or expired/) });
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
@@ -225,7 +225,7 @@ describe("hubspot:file", () => {
 
     expect(result.success).toBe(true);
     expect(result.fileId).toBe("FILE_X");
-    expect(result.warnings?.[0]).toMatch(/Association file→contact non creata/);
+    expect(result.warnings?.[0]).toMatch(/File→contact association not created/);
   });
 
   it("returns error when Files API responds non-ok", async () => {
@@ -275,7 +275,7 @@ describe("hubspot:file", () => {
       .mockResolvedValueOnce(
         jsonResponse({
           id: "FILE_42",
-          name: "proposta-jane-doe.pdf",
+          name: "quote-jane-doe.pdf",
           url: "https://hubspot.example/file/42",
           createdAt: "2026-05-20T10:00:00Z",
           extension: "pdf",
@@ -296,7 +296,7 @@ describe("hubspot:file", () => {
     expect(result).toMatchObject({
       success: true,
       fileId: "FILE_42",
-      filename: "proposta-jane-doe.pdf",
+      filename: "quote-jane-doe.pdf",
       publicUrl: "https://hubspot.example/file/42",
       contactId: "CONTACT_780919107780",
     });
@@ -329,7 +329,7 @@ describe("hubspot:file", () => {
     });
 
     expect(result).toMatchObject({
-      error: expect.stringMatching(/Nessun file associato/),
+      error: expect.stringMatching(/No file associated/),
       errorCode: "NOT_FOUND",
       contactId: "CONTACT_NONE",
     });
@@ -368,7 +368,7 @@ describe("hubspot:file", () => {
     });
 
     expect(result).toMatchObject({
-      error: expect.stringMatching(/Trovati 3 PDF associati/),
+      error: expect.stringMatching(/Found 3 PDFs associated/),
       errorCode: "MULTIPLE_FOUND",
       contactId: "CONTACT_DUP",
       count: 3,
@@ -389,7 +389,7 @@ describe("hubspot:file", () => {
     });
 
     expect(result).toMatchObject({
-      error: expect.stringMatching(/associateContactId obbligatorio/),
+      error: expect.stringMatching(/associateContactId is required/),
     });
     // errorCode must NOT be set for input-validation errors (only set on
     // domain-level outcomes NOT_FOUND / MULTIPLE_FOUND).

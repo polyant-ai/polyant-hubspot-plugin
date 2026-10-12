@@ -11,83 +11,83 @@ import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
 export default defineTool({
   name: "ticket",
   description:
-    "Gestisce i ticket nel CRM HubSpot: crea, aggiorna, recupera dettagli o cerca ticket.\n" +
-    "Usa con action 'create' per nuovi ticket, 'update' per modificare priorità/contenuto/stage di un ticket esistente, 'get' per dettagli di un ticket (inclusi contatti e aziende associate), 'search' per cercare ticket (include aziende associate).\n" +
-    "Restituisce proprieta' del ticket e URL nel portale HubSpot.\n" +
-    "Caveat: per 'create', subject è obbligatorio. priority: HIGH, MEDIUM, LOW. contactId opzionale per associazione. Per 'update', ticketId obbligatorio e almeno uno tra priority/content/pipelineStage. Per 'get', richiede ticketId. Per 'search', createdAfter/Before in formato ISO 8601, contactId filtra i ticket associati a quel contact, openOnly=true esclude i ticket chiusi (stage '4'). Il campo query cerca nel soggetto e nel contenuto.",
+    "Manage tickets in the HubSpot CRM: create, update, fetch details or search tickets.\n" +
+    "Use action 'create' for new tickets, 'update' to change priority/content/stage of an existing ticket, 'get' for ticket details (including associated contacts and companies), 'search' to query tickets (associated companies included in the response).\n" +
+    "Returns ticket properties and its URL in the HubSpot portal.\n" +
+    "Caveat: for 'create', subject is required. priority: HIGH, MEDIUM, LOW. contactId is optional for associations. For 'update', ticketId is required and at least one of priority/content/pipelineStage. For 'get', ticketId is required. For 'search', createdAfter/Before are ISO 8601, contactId filters tickets associated with that contact, openOnly=true excludes closed tickets (stage '4'). The query field searches in the subject and content.",
   category: "crm",
   requiredSecrets: ["hubspot_api_key"],
   inputExamples: [
     {
-      label: "Crea ticket di supporto",
-      input: { action: "create", subject: "Accesso non riuscito dopo il reset password", priority: "HIGH", content: "Il cliente non riesce ad accedere dopo il reset della password", contactId: "12345" },
+      label: "Create a support ticket",
+      input: { action: "create", subject: "Login fails after password reset", priority: "HIGH", content: "Customer reports being unable to log in after using the reset link", contactId: "12345" },
     },
     {
-      label: "Bump priority ticket esistente",
+      label: "Bump priority of an existing ticket",
       input: { action: "update", ticketId: "12345", priority: "HIGH" },
     },
     {
-      label: "Dettagli di un ticket specifico",
+      label: "Details of a specific ticket",
       input: { action: "get", ticketId: "12345" },
     },
     {
-      label: "Ticket alta priorita' ultima settimana",
+      label: "High-priority tickets created in the last week",
       input: { action: "search", priority: "HIGH", createdAfter: "2026-04-01" },
     },
     {
-      label: "Ticket aperti di un contatto",
+      label: "Open tickets of a contact",
       input: { action: "search", contactId: "12345", openOnly: true },
     },
   ],
   parameters: z.object({
-    action: z.enum(["create", "update", "get", "search"]).describe("'create' per nuovo ticket, 'update' per modificare ticket esistente, 'get' per dettagli singolo ticket, 'search' per cercare"),
+    action: z.enum(["create", "update", "get", "search"]).describe("'create' for a new ticket, 'update' to modify an existing ticket, 'get' for details of a single ticket, 'search' to query"),
       // --- create / update params ---
       subject: z
         .string()
         .nullable()
-        .describe("Oggetto del ticket (obbligatorio per create)"),
+        .describe("Ticket subject (required for create)"),
       content: z
         .string()
         .nullable()
-        .describe("Descrizione/contenuto del ticket (opzionale per create e update)"),
+        .describe("Ticket description/content (optional for create and update)"),
       contactId: z
         .string()
         .nullable()
-        .describe("ID contatto HubSpot. Per create: associa il contatto al nuovo ticket. Per search: filtra solo i ticket associati a questo contatto."),
+        .describe("HubSpot contact ID. For create: associates the contact with the new ticket. For search: filters to tickets associated with this contact only."),
       pipelineStage: z
         .string()
         .nullable()
-        .describe("Stage del pipeline ticket (es. '1'=New, '2'=Waiting on contact, '3'=Waiting on us, '4'=Closed). Opzionale per create e update."),
+        .describe("Ticket pipeline stage (e.g. '1'=New, '2'=Waiting on contact, '3'=Waiting on us, '4'=Closed). Optional for create and update."),
       // --- get / update params ---
       ticketId: z
         .string()
         .nullable()
-        .describe("ID del ticket HubSpot (obbligatorio per get e update)"),
+        .describe("HubSpot ticket ID (required for get and update)"),
       // --- search params ---
       query: z
         .string()
         .nullable()
-        .describe("Testo libero da cercare nell'oggetto o contenuto del ticket (solo per search)"),
+        .describe("Free-text query against the ticket subject or content (search only)"),
       priority: z
         .enum(["LOW", "MEDIUM", "HIGH"])
         .nullable()
-        .describe("Per search: filtro per priorità del ticket. Per create/update: priorità da impostare."),
+        .describe("For search: filter by ticket priority. For create/update: priority to set."),
       createdAfter: z
         .string()
         .nullable()
-        .describe("Ticket creati dopo questa data (ISO 8601, solo per search)"),
+        .describe("Tickets created on or after this date (ISO 8601, search only)"),
       createdBefore: z
         .string()
         .nullable()
-        .describe("Ticket creati prima di questa data (ISO 8601, solo per search)"),
+        .describe("Tickets created on or before this date (ISO 8601, search only)"),
       openOnly: z
         .boolean()
         .nullable()
-        .describe("Se true esclude i ticket chiusi (stage '4'). Solo per search."),
+        .describe("When true, excludes closed tickets (stage '4'). Search only."),
       limit: z
         .number()
         .nullable()
-        .describe("Numero massimo di risultati (default 20, max 100, solo per search)"),
+        .describe("Maximum number of results (default 20, max 100, search only)"),
     }),
   execute: async (
     params: {
@@ -116,14 +116,14 @@ export default defineTool({
 
     if (params.action === "update") {
       if (!params.ticketId) {
-        return { error: "ticketId obbligatorio per l'azione 'update'." };
+        return { error: "ticketId is required for action 'update'." };
       }
       return updateTicket(ctx, apiKey, params);
     }
 
     if (params.action === "get") {
       if (!params.ticketId) {
-        return { error: "ticketId obbligatorio per l'azione 'get'." };
+        return { error: "ticketId is required for action 'get'." };
       }
       return getTicket(ctx, apiKey, params.ticketId);
     }
@@ -147,7 +147,7 @@ async function createTicket(
   },
 ) {
   if (!params.subject) {
-    return { error: "subject è obbligatorio per l'azione 'create'." };
+    return { error: "subject is required for action 'create'." };
   }
 
   try {
@@ -174,7 +174,7 @@ async function createTicket(
 
     if (!response.ok) {
       const body = await response.text();
-      return { error: `Errore creazione ticket (${response.status}): ${body.slice(0, 200)}` };
+      return { error: `Ticket creation failed (${response.status}): ${body.slice(0, 200)}` };
     }
 
     const ticket = (await response.json()) as {
@@ -208,7 +208,7 @@ async function createTicket(
 
       if (!assocRes.ok) {
         const body = await assocRes.text();
-        warnings.push(`Associazione contatto fallita: ${body.slice(0, 100)}`);
+        warnings.push(`Contact association failed: ${body.slice(0, 100)}`);
       }
     }
 
@@ -234,7 +234,7 @@ async function createTicket(
         url: hubspotUrl(portalId, "ticket", ticket.id),
       },
       ...(warnings.length > 0 ? { warnings } : {}),
-      message: "Ticket creato con successo.",
+      message: "Ticket created successfully.",
     };
   } catch (err) {
     ctx.audit.log({
@@ -243,7 +243,7 @@ async function createTicket(
       success: false,
       error: errMsg(err),
     });
-    return { error: `Errore creazione ticket: ${errMsg(err)}` };
+    return { error: `Ticket creation failed: ${errMsg(err)}` };
   }
 }
 
@@ -268,10 +268,10 @@ async function updateTicket(
   if (params.pipelineStage) properties.hs_pipeline_stage = params.pipelineStage;
 
   if (Object.keys(properties).length === 0) {
-    return { error: "Per 'update' specifica almeno uno tra priority, content, pipelineStage." };
+    return { error: "For 'update' provide at least one of priority, content, pipelineStage." };
   }
 
-  // Snapshot delle proprietà attuali per loggare il diff (best-effort)
+  // Snapshot of current properties to log the diff (best-effort)
   let previousPriority: string | null = null;
   let previousStage: string | null = null;
   try {
@@ -290,7 +290,7 @@ async function updateTicket(
       previousStage = beforeData.properties?.hs_pipeline_stage ?? null;
     }
   } catch {
-    // diff snapshot best-effort: se fallisce procediamo senza
+    // best-effort diff snapshot: if it fails we proceed without
   }
 
   try {
@@ -314,7 +314,7 @@ async function updateTicket(
         success: false,
         error: `HTTP ${response.status}: ${body.slice(0, 200)}`,
       });
-      return { error: `Errore update ticket (${response.status}): ${body.slice(0, 200)}` };
+      return { error: `Ticket update failed (${response.status}): ${body.slice(0, 200)}` };
     }
 
     const ticket = (await response.json()) as {
@@ -351,7 +351,7 @@ async function updateTicket(
         priority: previousPriority,
         stage: previousStage,
       },
-      message: "Ticket aggiornato con successo.",
+      message: "Ticket updated successfully.",
     };
   } catch (err) {
     ctx.audit.log({
@@ -360,7 +360,7 @@ async function updateTicket(
       success: false,
       error: errMsg(err),
     });
-    return { error: `Errore update ticket: ${errMsg(err)}` };
+    return { error: `Ticket update failed: ${errMsg(err)}` };
   }
 }
 
@@ -485,7 +485,7 @@ async function getTicket(
 
     if (!ticketRes.ok) {
       const body = await ticketRes.text();
-      return { error: `Errore recupero ticket (${ticketRes.status}): ${body.slice(0, 200)}` };
+      return { error: `Ticket fetch failed (${ticketRes.status}): ${body.slice(0, 200)}` };
     }
 
     const ticket = (await ticketRes.json()) as {
@@ -572,7 +572,7 @@ async function getTicket(
       success: false,
       error: errMsg(err),
     });
-    return { error: `Errore recupero ticket: ${errMsg(err)}` };
+    return { error: `Ticket fetch failed: ${errMsg(err)}` };
   }
 }
 
@@ -605,9 +605,9 @@ async function searchTickets(
       filters.push({ propertyName: "associations.contact", operator: "EQ", value: params.contactId });
     }
     if (params.openOnly) {
-      // Standard HubSpot support pipeline (id "0") chiude allo stage "4".
-      // Per pipeline custom serve sapere lo stage di chiusura; questo filtro è una euristica
-      // pensata per il caso d'uso più comune del pipeline support default.
+      // The standard HubSpot support pipeline (id "0") closes at stage "4".
+      // For custom pipelines you'd need the actual closed stage id; this filter
+      // is a heuristic tailored to the most common default-support pipeline case.
       filters.push({ propertyName: "hs_pipeline_stage", operator: "NEQ", value: "4" });
     }
 

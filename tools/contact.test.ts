@@ -584,7 +584,7 @@ describe("hubspotContact", () => {
       toolCtx,
     );
 
-    expect(result.error).toContain("almeno un criterio");
+    expect(result.error).toContain("at least one search criterion");
     expect(mockFetch).not.toHaveBeenCalled();
   });
 

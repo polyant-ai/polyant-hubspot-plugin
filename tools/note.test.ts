@@ -111,7 +111,7 @@ describe("hubspotNote", () => {
         },
         toolCtx,
       );
-      expect(res.error).toMatch(/body e' obbligatorio/i);
+      expect(res.error).toMatch(/body is required/i);
     });
   });
 
@@ -170,7 +170,7 @@ describe("hubspotNote", () => {
         },
         toolCtx,
       );
-      expect(res.error).toMatch(/noteId e' obbligatorio/i);
+      expect(res.error).toMatch(/noteId is required/i);
     });
 
     it("returns error when body is missing", async () => {
@@ -191,7 +191,7 @@ describe("hubspotNote", () => {
         },
         toolCtx,
       );
-      expect(res.error).toMatch(/body e' obbligatorio/i);
+      expect(res.error).toMatch(/body is required/i);
     });
   });
 
@@ -499,7 +499,7 @@ describe("hubspotNote", () => {
         toolCtx,
       );
 
-      expect(res.error).toMatch(/Nessun contatto trovato/i);
+      expect(res.error).toMatch(/No contact found/i);
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
