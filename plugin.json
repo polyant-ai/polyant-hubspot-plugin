@@ -1,14 +1,26 @@
 {
   "name": "hubspot",
-  "version": "1.1.2",
-  "engine": ">=1.2.0",
+  "version": "1.2.0",
+  "engine": ">=1.3.0",
   "namespace": "hubspot",
   "toolsDir": "tools",
   "oauthProviders": [],
-  "displayName": "HubSpot CRM",
-  "description": "Contatti, deal, ticket, attività, email e file HubSpot a disposizione degli agenti.",
+  "displayName": {
+    "en-US": "HubSpot CRM",
+    "it-IT": "HubSpot CRM"
+  },
+  "description": {
+    "en-US": "HubSpot contacts, deals, tickets, tasks, emails, and files available to agents.",
+    "it-IT": "Contatti, deal, ticket, attività, email e file HubSpot a disposizione degli agenti."
+  },
   "icon": "icon.svg",
-  "category": "CRM",
+  "category": {
+    "en-US": "CRM",
+    "it-IT": "CRM"
+  },
   "publisher": "Exelab",
-  "longDescription": "Collega gli agenti al portale HubSpot dell'Organizzazione: cercano e aggiornano contatti, aziende, deal e ticket, registrano note, attività e meeting, inviano email one-to-one e allegano file ai record.\n\nOgni chiamata usa la private app HubSpot configurata come secret dell'agente, con i soli scope che le concedi: il plugin non vede nulla di più di quello che la chiave permette."
+  "longDescription": {
+    "en-US": "Connects agents to the Organization's HubSpot portal: they search and update contacts, companies, deals, and tickets, log notes, tasks, and meetings, send one-to-one emails, and attach files to records.\n\nEvery call uses the HubSpot private app configured as the agent's secret, with only the scopes you grant it: the plugin sees nothing beyond what the key allows.",
+    "it-IT": "Collega gli agenti al portale HubSpot dell'Organizzazione: cercano e aggiornano contatti, aziende, deal e ticket, registrano note, attività e meeting, inviano email one-to-one e allegano file ai record.\n\nOgni chiamata usa la private app HubSpot configurata come secret dell'agente, con i soli scope che le concedi: il plugin non vede nulla di più di quello che la chiave permette."
+  }
 }

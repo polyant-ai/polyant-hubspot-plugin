@@ -24,7 +24,7 @@ example `hubspot__contact`.
 
 ## Requirements
 
-- Polyant engine 1.2.0 or later (`plugin.json` declares `"engine": ">=1.2.0"`).
+- Polyant engine 1.3.0 or later (`plugin.json` declares `"engine": ">=1.3.0"`).
 - Plugin SDK `@polyant-ai/plugin-sdk` v1.9.0, installed as a git dependency from
   `github.com/polyant-ai/polyant-sdk` when the plugin is built.
 - A HubSpot [private app](https://developers.hubspot.com/docs/api/private-apps) whose
