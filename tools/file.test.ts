@@ -40,7 +40,7 @@ describe("hubspot:file", () => {
     expect(def).toBeDefined();
     expect(def.name).toBe("file");
     expect(def.category).toBe("crm");
-    expect(def.requiredSecrets).toEqual([{ key: "hubspot_api_key", type: "text", sensitive: true }]);
+    expect(def.requiredSecrets).toEqual([expect.objectContaining({ key: "hubspot_api_key", type: "text", sensitive: true })]);
   });
 
   it("rejects when fileHandle is unknown or expired", async () => {

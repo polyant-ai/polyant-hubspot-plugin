@@ -6,6 +6,7 @@ import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES } from "../lib/hubspot-fetch.js";
 import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 export default defineTool({
   name: "sendEmail",
@@ -16,8 +17,12 @@ export default defineTool({
     "Do NOT use this tool for messaging channels (Telegram, Slack) — use the configured channels.\n" +
     "Returns the sent email ID and its URL in the HubSpot portal.\n" +
     "Caveat: requires contactId (the contact must have an email). The body supports HTML.",
+  summary: {
+    "en-US": "Sends a tracked email through HubSpot to a CRM contact.",
+    "it-IT": "Invia un'email tracciata tramite HubSpot a un contatto del CRM.",
+  },
   category: "crm",
-  requiredSecrets: ["hubspot_api_key"],
+  requiredSecrets: HUBSPOT_SECRETS,
   inputExamples: [
     {
       label: "Follow-up email",

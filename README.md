@@ -25,7 +25,7 @@ example `hubspot__contact`.
 ## Requirements
 
 - Polyant engine 1.3.0 or later (`plugin.json` declares `"engine": ">=1.3.0"`).
-- Plugin SDK `@polyant-ai/plugin-sdk` v1.9.0, installed as a git dependency from
+- Plugin SDK `@polyant-ai/plugin-sdk` v1.10.0, installed as a git dependency from
   `github.com/polyant-ai/polyant-sdk` when the plugin is built.
 - A HubSpot [private app](https://developers.hubspot.com/docs/api/private-apps) whose
   token carries the scopes for the objects the agent works with (contacts, companies,
@@ -36,7 +36,7 @@ The plugin needs no system packages, so `plugin.json` declares no `system` block
 ## Secret
 
 Every tool declares one secret, `hubspot_api_key`: the private app token. Set it in the
-agent's secrets in the admin panel. The engine hands a tool only the secrets it
+agent's secrets in the admin panel, which shows its label and description in the reader's language. The engine hands a tool only the secrets it
 declared, and the plugin sees nothing beyond what the token allows.
 
 ## Installing on an OSS engine image

@@ -7,6 +7,7 @@ import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES, resolveOwnerIdFromEmail } from "../lib/hubspot-fetch.js";
 import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
 import { ensureHtmlBody } from "../lib/hubspot-rich-text.js";
+import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 export default defineTool({
   name: "createTask",
@@ -18,8 +19,12 @@ export default defineTool({
     "Returns the created task ID and its URL in the HubSpot portal.\n" +
     "Caveat: dueDate is optional but recommended. priority accepts the standard HubSpot values (HIGH, MEDIUM, LOW).\n" +
     "Owner: to assign the task to a specific HubSpot user, pass ownerEmail (e.g. 'jane.doe@acme.com') or, if you already know the numeric id, ownerId. If both are null the task is created without an owner.",
+  summary: {
+    "en-US": "Creates a HubSpot task linked to a contact.",
+    "it-IT": "Crea un'attività HubSpot collegata a un contatto.",
+  },
   category: "crm",
-  requiredSecrets: ["hubspot_api_key"],
+  requiredSecrets: HUBSPOT_SECRETS,
   inputExamples: [
     {
       label: "Callback task",

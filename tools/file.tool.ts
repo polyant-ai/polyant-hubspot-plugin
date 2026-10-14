@@ -5,6 +5,7 @@ import { defineTool } from "@polyant-ai/plugin-sdk";
 import type { ToolContext } from "@polyant-ai/plugin-sdk";
 import { errMsg } from "../lib/error.js";
 import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES } from "../lib/hubspot-fetch.js";
+import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 const ACCESS_VALUES = ["PUBLIC_INDEXABLE", "PUBLIC_NOT_INDEXABLE", "PRIVATE"] as const;
 type Access = (typeof ACCESS_VALUES)[number];
@@ -26,15 +27,19 @@ export default defineTool({
     "  Searches both HubSpot shapes: (a) direct file→contact associations, (b) note engagements with hs_attachment_ids (the 'Add attachment' case from the HubSpot UI). Union + dedupe, then filters by 'pdf' extension — other files (profile pictures, screenshots, mixed docs) are ignored.\n" +
     "  Outcomes: { success: true, fileId, filename, publicUrl, createdAt } if exactly 1 PDF is found.\n" +
     "  Error outcome with errorCode='NOT_FOUND' if 0 PDFs. Error outcome with errorCode='MULTIPLE_FOUND' (+ count field) if >1 PDFs: the use case assumes a 1:1 contact↔PDF mapping.",
+  summary: {
+    "en-US": "Uploads a file to HubSpot Files or finds the PDF attached to a contact.",
+    "it-IT": "Carica un file in HubSpot Files o trova il PDF allegato a un contatto.",
+  },
   category: "crm",
-  requiredSecrets: ["hubspot_api_key"],
+  requiredSecrets: HUBSPOT_SECRETS,
   inputExamples: [
     {
       label: "Upload PDF and associate file→contact (no note)",
       input: {
         action: "upload",
         fileHandle: "artifact_<uuid>",
-        filename: "preventivo-2026-001.pdf",
+        filename: "quote-2026-001.pdf",
         access: "PUBLIC_NOT_INDEXABLE",
         associateContactId: "12345",
       },

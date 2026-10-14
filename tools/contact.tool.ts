@@ -7,6 +7,7 @@ import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES, buildPhoneFilterGroups, resolveOwnerNames } from "../lib/hubspot-fetch.js";
 import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 const HUBSPOT_FILTER_OPERATORS = [
   "EQ",
@@ -27,8 +28,12 @@ export default defineTool({
     "For 'search' you need at least one of phone, name, email, contactId (= get-by-id) or filters; 'create' requires at least email or phone to avoid duplicates; 'update' requires contactId.\n" +
     "Portal custom properties: use customProperties in create/update, filters + returnProperties in search.\n" +
     "If the response includes nextAfter, repeat passing that value as 'after' to paginate.",
+  summary: {
+    "en-US": "Creates, updates or searches contacts in the HubSpot CRM.",
+    "it-IT": "Crea, aggiorna o cerca contatti nel CRM HubSpot.",
+  },
   category: "crm",
-  requiredSecrets: ["hubspot_api_key"],
+  requiredSecrets: HUBSPOT_SECRETS,
   inputExamples: [
     {
       label: "Search by phone",

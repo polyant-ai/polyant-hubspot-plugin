@@ -43,7 +43,7 @@ describe("hubspotContact", () => {
     expect(def).toBeDefined();
     expect(def.name).toBe("contact");
     expect(def.category).toBe("crm");
-    expect(def.requiredSecrets).toEqual([{ key: "hubspot_api_key", type: "text", sensitive: true }]);
+    expect(def.requiredSecrets).toEqual([expect.objectContaining({ key: "hubspot_api_key", type: "text", sensitive: true })]);
   });
 
   it("has parameters and description", () => {

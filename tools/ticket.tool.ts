@@ -7,6 +7,7 @@ import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES } from "../lib/hubspot-fetch.js";
 import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 export default defineTool({
   name: "ticket",
@@ -15,8 +16,12 @@ export default defineTool({
     "Use action 'create' for new tickets, 'update' to change priority/content/stage of an existing ticket, 'get' for ticket details (including associated contacts and companies), 'search' to query tickets (associated companies included in the response).\n" +
     "Returns ticket properties and its URL in the HubSpot portal.\n" +
     "Caveat: for 'create', subject is required. priority: HIGH, MEDIUM, LOW. contactId is optional for associations. For 'update', ticketId is required and at least one of priority/content/pipelineStage. For 'get', ticketId is required. For 'search', createdAfter/Before are ISO 8601, contactId filters tickets associated with that contact, openOnly=true excludes closed tickets (stage '4'). The query field searches in the subject and content.",
+  summary: {
+    "en-US": "Creates, updates or searches tickets in the HubSpot CRM.",
+    "it-IT": "Crea, aggiorna o cerca ticket nel CRM HubSpot.",
+  },
   category: "crm",
-  requiredSecrets: ["hubspot_api_key"],
+  requiredSecrets: HUBSPOT_SECRETS,
   inputExamples: [
     {
       label: "Create a support ticket",

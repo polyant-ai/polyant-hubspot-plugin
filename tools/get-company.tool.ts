@@ -6,6 +6,7 @@ import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError } from "../lib/hubspot-fetch.js";
 import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 const COMPANY_PROPERTIES = [
   "name",
@@ -28,8 +29,12 @@ export default defineTool({
   description:
     "Search companies in the HubSpot CRM by name or domain (at least one required).\n" +
     "Returns name, domain, industry, employee count, revenue and the portal URL.",
+  summary: {
+    "en-US": "Looks up companies in the HubSpot CRM by name or domain.",
+    "it-IT": "Cerca aziende nel CRM HubSpot per nome o dominio.",
+  },
   category: "crm",
-  requiredSecrets: ["hubspot_api_key"],
+  requiredSecrets: HUBSPOT_SECRETS,
   parameters: z.object({
       name: z
         .string()
