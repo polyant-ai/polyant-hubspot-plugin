@@ -7,6 +7,7 @@ import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES } from "../lib/hubspot-fetch.js";
 import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 export default defineTool({
   name: "meeting",
@@ -15,8 +16,12 @@ export default defineTool({
     "Use action 'create' for new meetings, 'get' to list a contact's meetings, 'update' to modify them.\n" +
     "Returns the meeting ID and its URL in the HubSpot portal.\n" +
     "Caveat: for 'create', startTime and endTime must be ISO 8601 and contactId is required. For 'get', returns future meetings plus those from the last 30 days. For 'update', only properties explicitly passed are updated.",
+  summary: {
+    "en-US": "Creates, lists or updates meetings in the HubSpot CRM.",
+    "it-IT": "Crea, elenca o aggiorna riunioni nel CRM HubSpot.",
+  },
   category: "crm",
-  requiredSecrets: ["hubspot_api_key"],
+  requiredSecrets: HUBSPOT_SECRETS,
   inputExamples: [
     {
       label: "Create a meeting",

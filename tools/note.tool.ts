@@ -8,6 +8,7 @@ import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES, resolveContactIdFromPhone } from "../lib/hubspot-fetch.js";
 import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
 import { ensureHtmlBody } from "../lib/hubspot-rich-text.js";
+import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 export default defineTool({
   name: "note",
@@ -16,8 +17,12 @@ export default defineTool({
     "To identify the contact you can pass contactId OR phone (E.164, e.g. '+14155550100'): if you only pass phone, the tool resolves the contactId automatically.\n" +
     "In 'search' with contactId/phone you only get the notes for that contact. In 'update' pass noteId and body (overwrites the previous body).\n" +
     "For an updatable contact profile: search → create if missing, update if present. Never duplicate.",
+  summary: {
+    "en-US": "Creates, searches or updates notes on HubSpot contacts.",
+    "it-IT": "Crea, cerca o aggiorna note sui contatti HubSpot.",
+  },
   category: "crm",
-  requiredSecrets: ["hubspot_api_key"],
+  requiredSecrets: HUBSPOT_SECRETS,
   inputExamples: [
     {
       label: "Note associated with contact and deal (via contactId)",

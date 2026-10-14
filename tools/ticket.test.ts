@@ -65,7 +65,7 @@ describe("hubspotTicket", () => {
     expect(def).toBeDefined();
     expect(def.name).toBe("ticket");
     expect(def.category).toBe("crm");
-    expect(def.requiredSecrets).toEqual([{ key: "hubspot_api_key", type: "text", sensitive: true }]);
+    expect(def.requiredSecrets).toEqual([expect.objectContaining({ key: "hubspot_api_key", type: "text", sensitive: true })]);
     // Indirect check that the action enum accepts "update": invoking execute with
     // action="update" should reach the update branch (which fails on missing ticketId).
     const tool = buildTool(def, ctxWithKey) as any;

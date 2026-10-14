@@ -7,6 +7,7 @@ import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES } from "../lib/hubspot-fetch.js";
 import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 export default defineTool({
   name: "deal",
@@ -16,8 +17,12 @@ export default defineTool({
     "Do NOT use this tool to create contacts — use hubspot__contact with action 'create'.\n" +
     "Returns the deal ID and its URL in the HubSpot portal.\n" +
     "Caveat: for 'create', stage must match a valid pipeline stage. contactId and companyId are optional for associations. For 'update', dealId is required — you can update stage, amount, closeDate, description. For 'search', closeDateAfter/Before filter by expected close date, NOT by creation date. The optional associatedContactId parameter filters deals belonging to a specific contact — useful to find purchase history of an existing customer. To read portal custom properties pass returnProperties (e.g. ['plan_tier','sla_class']) — values are exposed under customProperties on each deal. Stages: appointmentscheduled, qualifiedtobuy, presentationscheduled, decisionmakerboughtin, closedwon, closedlost.",
+  summary: {
+    "en-US": "Creates, updates or searches deals in the HubSpot CRM.",
+    "it-IT": "Crea, aggiorna o cerca trattative nel CRM HubSpot.",
+  },
   category: "crm",
-  requiredSecrets: ["hubspot_api_key"],
+  requiredSecrets: HUBSPOT_SECRETS,
   inputExamples: [
     {
       label: "Minimal deal",
