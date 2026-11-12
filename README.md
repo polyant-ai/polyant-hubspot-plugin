@@ -24,8 +24,10 @@ example `hubspot__contact`.
 
 ## Requirements
 
-- Polyant engine 1.3.0 or later (`plugin.json` declares `"engine": ">=1.3.0"`).
-- Plugin SDK `@polyant-ai/plugin-sdk` v1.10.0, installed as a git dependency from
+- Polyant engine 1.3.5 or later (`plugin.json` declares `"engine": ">=1.3.5"`). The
+  tool schemas are written with Zod 4, which an engine image converts with its own
+  plugin SDK: older engines ship SDK 1.11 or earlier, which turns them into empty schemas.
+- Plugin SDK `@polyant-ai/plugin-sdk` v1.12.0, installed as a git dependency from
   `github.com/polyant-ai/polyant-sdk` when the plugin is built.
 - A HubSpot [private app](https://developers.hubspot.com/docs/api/private-apps) whose
   token carries the scopes for the objects the agent works with (contacts, companies,
