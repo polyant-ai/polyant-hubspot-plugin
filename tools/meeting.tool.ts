@@ -6,7 +6,7 @@ import type { ToolContext } from "@polyant-ai/plugin-sdk";
 import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES } from "../lib/hubspot-fetch.js";
-import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { resolveHubSpotPortal, hubspotUrl, warningsField } from "../lib/hubspot-portal.js";
 import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 export default defineTool({
@@ -261,7 +261,7 @@ async function createMeeting(
       success: true,
     });
 
-    const portalId = await getHubSpotPortalId(apiKey);
+    const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
     return {
       success: true,
@@ -273,6 +273,7 @@ async function createMeeting(
         location: location ?? null,
         contactUrl: hubspotUrl(portalId, "contact", contactId),
       },
+      ...warningsField(portalWarning),
       message: `Meeting created successfully for ${start.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })} at ${start.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}.`,
     };
   } catch (err) {
@@ -370,7 +371,7 @@ async function getMeetings(
       minute: "2-digit",
     });
 
-    const portalId = await getHubSpotPortalId(apiKey);
+    const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
     const filtered = batchData.results
       .filter((m) => {
@@ -417,6 +418,7 @@ async function getMeetings(
       found: filtered.length,
       meetings: filtered,
       contactUrl: hubspotUrl(portalId, "contact", contactId),
+      ...warningsField(portalWarning),
     };
   } catch (err) {
     ctx.audit.log({

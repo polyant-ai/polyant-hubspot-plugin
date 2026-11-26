@@ -27,10 +27,10 @@ If private reporting is not available, email `security@polyant.ai` with the same
 
 ### Scope
 
-In scope: leaking or mishandling the HubSpot private app token, requests sent to
+In scope: leaking or mishandling the HubSpot token (Service Key or private app), requests sent to
 HubSpot with a record or owner the caller is not entitled to, injection through tool
 inputs, and unsafe handling of uploaded file content.
 
-Out of scope: misconfiguration of the HubSpot private app (for example scopes wider
-than the agent needs), and issues in third-party dependencies that do not affect this
+Out of scope: misconfiguration of the HubSpot Service Key or private app (for example
+scopes wider than the agent needs), and issues in third-party dependencies that do not affect this
 plugin's code paths (report those upstream).

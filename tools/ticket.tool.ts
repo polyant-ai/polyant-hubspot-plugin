@@ -6,7 +6,7 @@ import type { ToolContext } from "@polyant-ai/plugin-sdk";
 import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES } from "../lib/hubspot-fetch.js";
-import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { resolveHubSpotPortal, hubspotUrl, warningsField } from "../lib/hubspot-portal.js";
 import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 export default defineTool({
@@ -217,7 +217,7 @@ async function createTicket(
       }
     }
 
-    const portalId = await getHubSpotPortalId(apiKey);
+    const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
     ctx.audit.log({
       action: "crm.createTicket",
@@ -238,7 +238,7 @@ async function createTicket(
         priority: params.priority,
         url: hubspotUrl(portalId, "ticket", ticket.id),
       },
-      ...(warnings.length > 0 ? { warnings } : {}),
+      ...warningsField(warnings, portalWarning),
       message: "Ticket created successfully.",
     };
   } catch (err) {
@@ -327,7 +327,7 @@ async function updateTicket(
       properties: Record<string, string | null>;
     };
 
-    const portalId = await getHubSpotPortalId(apiKey);
+    const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
     ctx.audit.log({
       action: "crm.updateTicket",
@@ -356,6 +356,7 @@ async function updateTicket(
         priority: previousPriority,
         stage: previousStage,
       },
+      ...warningsField(portalWarning),
       message: "Ticket updated successfully.",
     };
   } catch (err) {
@@ -533,7 +534,7 @@ async function getTicket(
       }
     }
 
-    const portalId = await getHubSpotPortalId(apiKey);
+    const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
     // 4. Fetch associated companies
     const companiesMap = await fetchAssociatedCompanies(apiKey, [ticketId], portalId);
@@ -561,6 +562,7 @@ async function getTicket(
         leadStatus: c.properties.hs_lead_status,
         url: hubspotUrl(portalId, "contact", c.id),
       })),
+      ...warningsField(portalWarning),
     };
 
     ctx.audit.log({
@@ -663,7 +665,7 @@ async function searchTickets(
       }>;
     };
 
-    const portalId = await getHubSpotPortalId(apiKey);
+    const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
     // Fetch associated companies for all tickets in batch
     const ticketIds = data.results.map((t) => t.id);
@@ -684,6 +686,7 @@ async function searchTickets(
         url: hubspotUrl(portalId, "ticket", t.id),
         companies: companiesMap.get(t.id) ?? [],
       })),
+      ...warningsField(portalWarning),
     };
 
     ctx.audit.log({

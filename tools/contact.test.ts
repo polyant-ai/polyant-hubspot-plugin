@@ -883,3 +883,61 @@ describe("hubspotContact", () => {
     expect(body.after).toBeUndefined();
   });
 });
+
+describe("hubspotContact access warnings", () => {
+  const def = hubspotContactTool;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("adds warnings when the owners and account-info calls are refused, instead of dropping owner_name and url silently", async () => {
+    // A key of its own, so the module-level portal and owner caches are cold.
+    const ctx = { ...ctxWithKey, secrets: { hubspot_api_key: "key-without-scopes" } };
+    const tool = buildTool(def, ctx) as any;
+    mockFetch.mockImplementation((url: string) => {
+      const u = String(url);
+      if (u.includes("/contacts/search")) {
+        return Promise.resolve(
+          createMockResponse(
+            JSON.stringify({
+              total: 1,
+              results: [{ id: "c-1", properties: { firstname: "Jane", hubspot_owner_id: "owner-403" } }],
+            }),
+          ),
+        );
+      }
+      if (u.includes("/crm/v3/owners")) {
+        return Promise.resolve(createMockResponse(JSON.stringify({ message: "forbidden" }), { status: 403 }));
+      }
+      return Promise.resolve(createMockResponse(JSON.stringify({ message: "unauthorized" }), { status: 401 }));
+    });
+
+    const result = await tool.execute(
+      {
+        action: "search",
+        contactId: "c-1",
+        firstName: null,
+        lastName: null,
+        phone: null,
+        email: null,
+        companyId: null,
+        name: null,
+        customProperties: null,
+        filters: null,
+        returnProperties: null,
+        limit: null,
+        after: null,
+      },
+      toolCtx,
+    );
+
+    expect(result.contacts[0].url).toBeNull();
+    expect(result.contacts[0].owner_name).toBeUndefined();
+    expect(result.contacts[0].hubspot_owner_id).toBe("owner-403");
+    expect(result.warnings).toEqual([
+      expect.stringContaining("(401)"),
+      expect.stringContaining("crm.objects.owners.read"),
+    ]);
+  });
+});

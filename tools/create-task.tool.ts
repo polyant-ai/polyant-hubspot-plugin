@@ -5,7 +5,7 @@ import { defineTool } from "@polyant-ai/plugin-sdk";
 import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES, resolveOwnerIdFromEmail } from "../lib/hubspot-fetch.js";
-import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { resolveHubSpotPortal, hubspotUrl, warningsField } from "../lib/hubspot-portal.js";
 import { ensureHtmlBody } from "../lib/hubspot-rich-text.js";
 import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
@@ -200,7 +200,7 @@ export default defineTool({
           success: true,
         });
 
-        const portalId = await getHubSpotPortalId(apiKey);
+        const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
         return {
           success: true,
@@ -215,6 +215,7 @@ export default defineTool({
           message:
             "Task created successfully and associated with the contact.",
           ...(ownerWarning ? { ownerWarning } : {}),
+          ...warningsField(portalWarning),
         };
       } catch (err) {
         ctx.audit.log({

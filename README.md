@@ -2,7 +2,7 @@
 
 HubSpot CRM tools for [Polyant](https://github.com/polyant-ai/polyant), packaged as a
 plugin so that a deployment that does not use HubSpot does not carry them. The plugin
-is also installable from the Polyant marketplace for Polyant Enterprise.
+is also installable from the Polyant marketplace.
 
 ## Tools
 
@@ -29,17 +29,37 @@ example `hubspot__contact`.
   plugin SDK: older engines ship SDK 1.11 or earlier, which turns them into empty schemas.
 - Plugin SDK `@polyant-ai/plugin-sdk` v1.12.0, installed as a git dependency from
   `github.com/polyant-ai/polyant-sdk` when the plugin is built.
-- A HubSpot [private app](https://developers.hubspot.com/docs/api/private-apps) whose
-  token carries the scopes for the objects the agent works with (contacts, companies,
-  deals, tickets, notes, meetings, tasks, emails, files).
+- A HubSpot Service Key whose token carries the scopes listed below. Super admins and
+  users with Developer tools access create it in HubSpot under Development → Keys →
+  Service keys. The token of an existing legacy private app also works: the plugin
+  sends either one as a Bearer token.
 
 The plugin needs no system packages, so `plugin.json` declares no `system` block.
 
+## Scopes
+
+Grant the key the scopes for the objects the agent works with:
+
+| Scope | Used for |
+| --- | --- |
+| `crm.objects.contacts.read` | contact search and phone lookup, notes, meetings |
+| `crm.objects.contacts.write` | creating and updating contacts, notes, meetings, tasks, emails |
+| `crm.objects.owners.read` | owner names in contact search, owner lookup by email in tasks |
+| `crm.objects.deals.read`, `crm.objects.deals.write` | `hubspot:deal` and note-to-deal associations |
+| `crm.objects.companies.read`, `crm.objects.companies.write` | `hubspot:getCompany` and associations with companies |
+| `tickets` | `hubspot:ticket` and note-to-ticket associations |
+| `files` | `hubspot:file` |
+
+When HubSpot refuses a request with 401 or 403, the tool says so. A phone lookup returns
+an error that names the status. A failed association, or a lookup that only enriches
+the result (record URLs, owner names, note associations), adds an entry to `warnings`.
+
 ## Secret
 
-Every tool declares one secret, `hubspot_api_key`: the private app token. Set it in the
-agent's secrets in the admin panel, which shows its label and description in the reader's language. The engine hands a tool only the secrets it
-declared, and the plugin sees nothing beyond what the token allows.
+Every tool declares one secret, `hubspot_api_key`: the Service Key token, or the token
+of an existing private app. Set it in the agent's secrets in the admin panel, which
+shows its label and description in the reader's language. The engine hands a tool
+only the secrets it declared, and the plugin sees nothing beyond what the token allows.
 
 ## Installing on an OSS engine image
 

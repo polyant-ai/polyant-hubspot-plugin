@@ -5,8 +5,8 @@ import { defineTool } from "@polyant-ai/plugin-sdk";
 import type { ToolContext } from "@polyant-ai/plugin-sdk";
 import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
-import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES, buildPhoneFilterGroups, resolveOwnerNames } from "../lib/hubspot-fetch.js";
-import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES, buildPhoneFilterGroups, resolveOwners } from "../lib/hubspot-fetch.js";
+import { resolveHubSpotPortal, hubspotUrl, warningsField } from "../lib/hubspot-portal.js";
 import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 const HUBSPOT_FILTER_OPERATORS = [
@@ -277,14 +277,14 @@ async function searchContacts(
 
     // Resolve owner ids → name/email so callers see "Mario Rossi" instead of a
     // numeric id. Only hit the Owners API when at least one result carries an
-    // owner (resolveOwnerNames also short-circuits on an empty id list). The
+    // owner (resolveOwners also short-circuits on an empty id list). The
     // portal-id and owner lookups are independent, so run them in parallel.
     const ownerIds = data.results
       .map((c) => c.properties.hubspot_owner_id)
       .filter((id): id is string => Boolean(id));
-    const [portalId, owners] = await Promise.all([
-      getHubSpotPortalId(apiKey),
-      resolveOwnerNames(apiKey, ownerIds),
+    const [{ portalId, warning: portalWarning }, { owners, warning: ownersWarning }] = await Promise.all([
+      resolveHubSpotPortal(apiKey),
+      resolveOwners(apiKey, ownerIds),
     ]);
 
     const result = {
@@ -311,6 +311,7 @@ async function searchContacts(
         };
       }),
       ...(data.paging?.next?.after ? { nextAfter: data.paging.next.after } : {}),
+      ...warningsField(portalWarning, ownersWarning),
     };
 
     ctx.audit.log({
@@ -508,7 +509,7 @@ async function manageContact(
       }
     }
 
-    const portalId = await getHubSpotPortalId(apiKey);
+    const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
     const result = {
       success: true,
@@ -521,7 +522,7 @@ async function manageContact(
         email: data.properties.email ?? null,
         url: hubspotUrl(portalId, "contact", data.id),
       },
-      ...(warnings.length > 0 ? { warnings } : {}),
+      ...warningsField(warnings, portalWarning),
     };
 
     ctx.audit.log({

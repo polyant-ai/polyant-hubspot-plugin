@@ -6,7 +6,7 @@ import type { ToolContext } from "@polyant-ai/plugin-sdk";
 import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES } from "../lib/hubspot-fetch.js";
-import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { resolveHubSpotPortal, hubspotUrl, warningsField } from "../lib/hubspot-portal.js";
 import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 export default defineTool({
@@ -284,7 +284,7 @@ async function createDeal(
       success: true,
     });
 
-    const portalId = await getHubSpotPortalId(apiKey);
+    const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
     return {
       success: true,
@@ -295,7 +295,7 @@ async function createDeal(
         amount: params.amount,
         url: hubspotUrl(portalId, "deal", deal.id),
       },
-      ...(warnings.length > 0 ? { warnings } : {}),
+      ...warningsField(warnings, portalWarning),
       message: "Deal created successfully.",
     };
   } catch (err) {
@@ -365,7 +365,7 @@ async function updateDeal(
       properties: Record<string, string | null>;
     };
 
-    const portalId = await getHubSpotPortalId(apiKey);
+    const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
     ctx.audit.log({
       action: "crm.updateDeal",
@@ -386,6 +386,7 @@ async function updateDeal(
         closeDate: deal.properties.closedate,
         url: hubspotUrl(portalId, "deal", deal.id),
       },
+      ...warningsField(portalWarning),
       message: "Deal updated successfully.",
     };
   } catch (err) {
@@ -482,7 +483,7 @@ async function searchDeals(
       }>;
     };
 
-    const portalId = await getHubSpotPortalId(apiKey);
+    const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
     const result = {
       found: data.total,
@@ -504,6 +505,7 @@ async function searchDeals(
           ...(extraProperties.length > 0 ? { customProperties } : {}),
         };
       }),
+      ...warningsField(portalWarning),
     };
 
     ctx.audit.log({
