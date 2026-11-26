@@ -5,7 +5,7 @@ import { defineTool } from "@polyant-ai/plugin-sdk";
 import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError } from "../lib/hubspot-fetch.js";
-import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { resolveHubSpotPortal, hubspotUrl, warningsField } from "../lib/hubspot-portal.js";
 import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 const COMPANY_PROPERTIES = [
@@ -112,7 +112,7 @@ export default defineTool({
           success: true,
         });
 
-        const portalId = await getHubSpotPortalId(apiKey);
+        const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
         return {
           found: data.total,
@@ -129,6 +129,7 @@ export default defineTool({
             website: c.properties.website,
             url: hubspotUrl(portalId, "company", c.id),
           })),
+          ...warningsField(portalWarning),
         };
       } catch (err) {
         ctx.audit.log({

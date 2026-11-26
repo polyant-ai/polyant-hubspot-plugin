@@ -79,7 +79,7 @@ describe("hubspotCreateTask", () => {
       .mockResolvedValueOnce(
         createMockResponse(JSON.stringify({ results: [] })),
       )
-      // Mock portal ID response (getHubSpotPortalId)
+      // Mock portal ID response (resolveHubSpotPortal)
       .mockResolvedValueOnce(
         createMockResponse(JSON.stringify({ portalId: 12345678 })),
       );

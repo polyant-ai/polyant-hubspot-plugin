@@ -5,7 +5,7 @@ import { defineTool } from "@polyant-ai/plugin-sdk";
 import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
 import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES } from "../lib/hubspot-fetch.js";
-import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { resolveHubSpotPortal, hubspotUrl, warningsField } from "../lib/hubspot-portal.js";
 import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
 export default defineTool({
@@ -125,7 +125,7 @@ export default defineTool({
           success: true,
         });
 
-        const portalId = await getHubSpotPortalId(apiKey);
+        const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
         return {
           success: true,
@@ -134,6 +134,7 @@ export default defineTool({
             subject: params.subject,
             contactUrl: hubspotUrl(portalId, "contact", params.contactId),
           },
+          ...warningsField(portalWarning),
           message: "Email sent and recorded in the contact timeline.",
         };
       } catch (err) {

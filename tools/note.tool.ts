@@ -5,8 +5,8 @@ import { defineTool } from "@polyant-ai/plugin-sdk";
 import type { ToolContext } from "@polyant-ai/plugin-sdk";
 import { errMsg } from "../lib/error.js";
 import { auditPreview } from "../lib/audit-preview.js";
-import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES, resolveContactIdFromPhone } from "../lib/hubspot-fetch.js";
-import { getHubSpotPortalId, hubspotUrl } from "../lib/hubspot-portal.js";
+import { hubspotFetch, getHubSpotApiKeyOrError, HUBSPOT_ASSOCIATION_TYPES, resolveContactIdFromPhone, describeAuthFailure } from "../lib/hubspot-fetch.js";
+import { resolveHubSpotPortal, hubspotUrl, warningsField } from "../lib/hubspot-portal.js";
 import { ensureHtmlBody } from "../lib/hubspot-rich-text.js";
 import { HUBSPOT_SECRETS } from "../lib/secrets.js";
 
@@ -115,7 +115,13 @@ export default defineTool({
     // so downstream logic can treat the two paths uniformly.
     let resolvedContactId = params.contactId;
     if (!resolvedContactId && params.phone && params.action !== "update") {
-      resolvedContactId = await resolveContactIdFromPhone(apiKey, params.phone);
+      // A failed search (401/403 included) is an error of its own: reporting
+      // it as "no contact found" would hide a token without the contacts scope.
+      try {
+        resolvedContactId = await resolveContactIdFromPhone(apiKey, params.phone);
+      } catch (err) {
+        return { error: errMsg(err) };
+      }
       if (!resolvedContactId) {
         return { error: `No contact found in HubSpot with phone "${params.phone}".` };
       }
@@ -199,8 +205,7 @@ async function createNote(
         },
       );
       if (!res.ok) {
-        const b = await res.text();
-        warnings.push(`Contact association failed: ${b.slice(0, 100)}`);
+        warnings.push(await associationFailure(res, "contact"));
       }
     }
 
@@ -217,8 +222,7 @@ async function createNote(
         },
       );
       if (!res.ok) {
-        const b = await res.text();
-        warnings.push(`Deal association failed: ${b.slice(0, 100)}`);
+        warnings.push(await associationFailure(res, "deal"));
       }
     }
 
@@ -235,8 +239,7 @@ async function createNote(
         },
       );
       if (!res.ok) {
-        const b = await res.text();
-        warnings.push(`Company association failed: ${b.slice(0, 100)}`);
+        warnings.push(await associationFailure(res, "company"));
       }
     }
 
@@ -253,8 +256,7 @@ async function createNote(
         },
       );
       if (!res.ok) {
-        const b = await res.text();
-        warnings.push(`Ticket association failed: ${b.slice(0, 100)}`);
+        warnings.push(await associationFailure(res, "ticket"));
       }
     }
 
@@ -272,8 +274,13 @@ async function createNote(
     });
 
     const needsPortal = Boolean(params.dealId || params.contactId);
-    const portalId = needsPortal ? await getHubSpotPortalId(apiKey) : null;
+    const portal = needsPortal ? await resolveHubSpotPortal(apiKey) : { portalId: null };
+    const portalId = portal.portalId;
+    const requested = [params.contactId, params.dealId, params.companyId, params.ticketId].filter(Boolean).length;
 
+    // success stays true when an association fails: the note exists, and a
+    // retried create would duplicate it. The message and warnings say which
+    // association is missing so the agent can report it or fix the token.
     return {
       success: true,
       note: {
@@ -281,8 +288,8 @@ async function createNote(
         ...(params.dealId ? { dealUrl: hubspotUrl(portalId, "deal", params.dealId) } : {}),
         ...(params.contactId ? { contactUrl: hubspotUrl(portalId, "contact", params.contactId) } : {}),
       },
-      ...(warnings.length > 0 ? { warnings } : {}),
-      message: "Note created and associated successfully.",
+      ...warningsField(warnings, portal.warning),
+      message: createNoteMessage(note.id, requested, warnings),
     };
   } catch (err) {
     ctx.audit.log({
@@ -449,10 +456,10 @@ async function searchNotes(
 
     // Batch-fetch associations for matched notes (3 calls total)
     noteIds = matchedNotes.map((n) => n.id);
-    const associationMap = await fetchBatchAssociations(apiKey, noteIds);
+    const { map: associationMap, warnings: associationWarnings } = await fetchBatchAssociations(apiKey, noteIds);
     const data = { total, results: matchedNotes };
 
-    const portalId = await getHubSpotPortalId(apiKey);
+    const { portalId, warning: portalWarning } = await resolveHubSpotPortal(apiKey);
 
     const notes = data.results.map((note) => {
       const assoc = associationMap.get(note.id) ?? { contactIds: [], dealIds: [], companyIds: [] };
@@ -479,7 +486,7 @@ async function searchNotes(
       success: true,
     });
 
-    return { found: data.total, notes };
+    return { found: data.total, notes, ...warningsField(associationWarnings, portalWarning) };
   } catch (err) {
     ctx.audit.log({
       action: "crm.searchNotes",
@@ -556,15 +563,38 @@ async function updateNote(
   }
 }
 
+/** Warning for a failed note association, naming the status and, on 401/403, the cause. */
+async function associationFailure(res: Response, objectType: string): Promise<string> {
+  const doing = `associating the note with the ${objectType}`;
+  const authFailure = describeAuthFailure(res.status, doing);
+  if (authFailure) return authFailure;
+  const body = await res.text();
+  return `${objectType[0].toUpperCase()}${objectType.slice(1)} association failed (${res.status}): ${body.slice(0, 100)}`;
+}
+
+/** The create message, which says "associated" only when every requested association succeeded. */
+function createNoteMessage(noteId: string, requested: number, failures: string[]): string {
+  if (failures.length === 0) {
+    return requested > 0 ? "Note created and associated successfully." : "Note created successfully.";
+  }
+  const failed = failures.length === requested ? "the association failed" : `${failures.length} of ${requested} associations failed`;
+  return `Note created (ID: ${noteId}), but ${failed}: ${failures.join(" ")}`;
+}
+
 type AssociationResult = { contactIds: string[]; dealIds: string[]; companyIds: string[] };
 
-/** Batch-fetch associations for all notes in 3 HTTP calls (one per object type). */
+/**
+ * Batch-fetch associations for all notes in 3 HTTP calls (one per object type).
+ * A failed read leaves those ids empty and adds a warning, so the agent does
+ * not take a missing association list for a note with no associations.
+ */
 async function fetchBatchAssociations(
   apiKey: string,
   noteIds: string[],
-): Promise<Map<string, AssociationResult>> {
+): Promise<{ map: Map<string, AssociationResult>; warnings: string[] }> {
   const map = new Map<string, AssociationResult>();
-  if (noteIds.length === 0) return map;
+  const warnings: string[] = [];
+  if (noteIds.length === 0) return { map, warnings };
 
   // Initialize empty results for all notes
   for (const id of noteIds) {
@@ -602,13 +632,15 @@ async function fetchBatchAssociations(
             }
           }
         } else {
-          console.warn(`[hubspot] Association read for ${toObjectType} returned ${res.status}`);
+          const doing = `reading note associations with ${toObjectType}`;
+          const cause = describeAuthFailure(res.status, doing) ?? `HubSpot API error (${res.status}) while ${doing}.`;
+          warnings.push(`${cause} ${key} is empty on every note in this result.`);
         }
       } catch (err) {
-        console.warn(`[hubspot] Association read for ${toObjectType} failed:`, err);
+        warnings.push(`Reading note associations with ${toObjectType} failed: ${errMsg(err)}. ${key} is empty on every note in this result.`);
       }
     }),
   );
 
-  return map;
+  return { map, warnings };
 }

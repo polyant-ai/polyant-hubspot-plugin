@@ -46,6 +46,33 @@ export function getHubSpotApiKeyOrError(ctx: ToolContext): string | { error: str
   return apiKey;
 }
 
+/**
+ * Explain a 401 or 403 from HubSpot in terms the agent can act on, or return
+ * null for any other status. `doing` completes the phrase "while …"; `scope`
+ * names the token scope the request needs, when one is known.
+ */
+export function describeAuthFailure(status: number, doing: string, scope?: string): string | null {
+  if (status === 401) {
+    return `HubSpot rejected the token (401) while ${doing}: check that hubspot_api_key holds a valid Service Key or private app token.`;
+  }
+  if (status === 403) {
+    const needed = scope ? `the ${scope} scope` : "the scope this request needs";
+    return `HubSpot denied access (403) while ${doing}: the token lacks ${needed}.`;
+  }
+  return null;
+}
+
+/** A HubSpot request that failed, with the HTTP status that caused it. */
+export class HubSpotRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "HubSpotRequestError";
+  }
+}
+
 type HubSpotFilter = { propertyName: string; operator: string; value: string };
 
 /**
@@ -89,6 +116,10 @@ export function buildPhoneFilterGroups(phone: string): Array<{ filters: HubSpotF
 /**
  * Resolve a HubSpot contact id from a phone number. Returns the first matching
  * contact id, or null if no contact matches.
+ *
+ * Throws {@link HubSpotRequestError} when the search itself fails, so that a
+ * token without `crm.objects.contacts.read` reads as an access error and not
+ * as "no contact with this phone".
  */
 export async function resolveContactIdFromPhone(
   apiKey: string,
@@ -110,7 +141,13 @@ export async function resolveContactIdFromPhone(
     },
   );
 
-  if (!response.ok) return null;
+  if (!response.ok) {
+    const doing = "searching contacts by phone";
+    const message =
+      describeAuthFailure(response.status, doing, "crm.objects.contacts.read") ??
+      `HubSpot API error (${response.status}) while ${doing}: ${(await response.text()).slice(0, 200)}`;
+    throw new HubSpotRequestError(message, response.status);
+  }
   const data = (await response.json()) as { results?: Array<{ id: string }> };
   return data.results?.[0]?.id ?? null;
 }
@@ -161,6 +198,13 @@ function ownerCacheKey(apiKey: string, ownerId: string): string {
   return `${apiKey}:${ownerId}`;
 }
 
+/** Owners found, with a warning when HubSpot refused the Owners API call. */
+export interface HubSpotOwnersLookup {
+  owners: Map<string, HubSpotOwner>;
+  /** Set when HubSpot answered 401/403: owner names are missing from the result. */
+  warning?: string;
+}
+
 /**
  * Resolve HubSpot owner ids to their display name and email — the reverse of
  * {@link resolveOwnerIdFromEmail}. Used to enrich tool results that expose an
@@ -172,15 +216,16 @@ function ownerCacheKey(apiKey: string, ownerId: string): string {
  * are cached per `${apiKey}:${id}` with a 1h TTL; a call whose ids are all
  * cached performs no network request, and an empty `ownerIds` list never hits
  * the API. On any API failure the already-resolved (cached) ids are still
- * returned and the rest are simply omitted — enrichment is best-effort and
- * never blocks the caller.
+ * returned and the rest are omitted, so enrichment never blocks the caller.
+ * A 401 or 403 also sets `warning`, which the tool adds to its result so the
+ * agent knows why owner names are missing.
  *
  * Requires the token scope `crm.objects.owners.read`.
  */
-export async function resolveOwnerNames(
+export async function resolveOwners(
   apiKey: string,
   ownerIds: readonly string[],
-): Promise<Map<string, HubSpotOwner>> {
+): Promise<HubSpotOwnersLookup> {
   const resolved = new Map<string, HubSpotOwner>();
 
   const uniqueIds = Array.from(new Set(ownerIds.filter((id) => id.length > 0)));
@@ -194,9 +239,10 @@ export async function resolveOwnerNames(
     }
   }
 
-  if (missingIds.length === 0) return resolved;
+  if (missingIds.length === 0) return { owners: resolved };
 
   const wanted = new Set(missingIds);
+  let warning: string | undefined;
   try {
     let after: string | undefined;
     do {
@@ -208,7 +254,11 @@ export async function resolveOwnerNames(
         method: "GET",
         headers: { Authorization: `Bearer ${apiKey}` },
       });
-      if (!response.ok) break;
+      if (!response.ok) {
+        const authFailure = describeAuthFailure(response.status, "reading owners", "crm.objects.owners.read");
+        if (authFailure) warning = `${authFailure} Owner names are omitted from this result.`;
+        break;
+      }
 
       const data = (await response.json()) as {
         results?: Array<{ id: string; firstName?: string | null; lastName?: string | null; email?: string | null }>;
@@ -228,7 +278,7 @@ export async function resolveOwnerNames(
     console.error("[HubSpot] Failed to resolve owner names:", err);
   }
 
-  return resolved;
+  return warning ? { owners: resolved, warning } : { owners: resolved };
 }
 
 /**

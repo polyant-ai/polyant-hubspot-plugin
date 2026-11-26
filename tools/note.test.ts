@@ -571,4 +571,117 @@ describe("hubspotNote", () => {
       expect(mockFetch.mock.calls[0][0]).toContain("/crm/v3/objects/notes/n-42");
     });
   });
+
+  describe("access errors and failed associations are visible", () => {
+    const base = {
+      body: "Brief",
+      noteId: null,
+      contactId: null,
+      phone: null,
+      dealId: null,
+      companyId: null,
+      ticketId: null,
+      query: null,
+      createdAfter: null,
+      createdBefore: null,
+      limit: null,
+    };
+
+    it("reports a 403 on phone resolution as an access error, not as 'no contact found'", async () => {
+      const tool = buildTool(def, ctxWithKey) as any;
+      mockFetch.mockResolvedValueOnce(createMockResponse(JSON.stringify({ message: "forbidden" }), { status: 403 }));
+
+      const res = await tool.execute({ ...base, action: "create", phone: "+14155550100" }, toolCtx);
+
+      expect(res.error).toContain("403");
+      expect(res.error).toContain("crm.objects.contacts.read");
+      expect(res.error).not.toMatch(/No contact found/);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps success for the created note but does not claim the association when it failed", async () => {
+      const tool = buildTool(def, ctxWithKey) as any;
+      mockFetch.mockImplementation((url: string) => {
+        const u = String(url);
+        if (u.endsWith("/crm/v3/objects/notes")) {
+          return Promise.resolve(createMockResponse(JSON.stringify({ id: "n-9", properties: {} })));
+        }
+        if (u.includes("associations/notes/contacts/batch/create")) {
+          return Promise.resolve(createMockResponse(JSON.stringify({ message: "forbidden" }), { status: 403 }));
+        }
+        return Promise.resolve(createMockResponse(JSON.stringify({ portalId: 11111111 })));
+      });
+
+      const res = await tool.execute({ ...base, action: "create", contactId: "c-1" }, toolCtx);
+
+      expect(res.success).toBe(true);
+      expect(res.note.id).toBe("n-9");
+      expect(res.message).not.toMatch(/associated successfully/);
+      expect(res.message).toMatch(/^Note created \(ID: n-9\), but the association failed: .*403/);
+      expect(res.warnings).toEqual([expect.stringContaining("403")]);
+    });
+
+    it("says how many associations failed when only some did", async () => {
+      const tool = buildTool(def, ctxWithKey) as any;
+      mockFetch.mockImplementation((url: string) => {
+        const u = String(url);
+        if (u.endsWith("/crm/v3/objects/notes")) {
+          return Promise.resolve(createMockResponse(JSON.stringify({ id: "n-10", properties: {} })));
+        }
+        if (u.includes("associations/notes/deals/batch/create")) {
+          return Promise.resolve(createMockResponse(JSON.stringify({ message: "bad deal" }), { status: 400 }));
+        }
+        if (u.includes("/batch/create")) {
+          return Promise.resolve(createMockResponse(JSON.stringify({})));
+        }
+        return Promise.resolve(createMockResponse(JSON.stringify({ portalId: 11111111 })));
+      });
+
+      const res = await tool.execute({ ...base, action: "create", contactId: "c-1", dealId: "d-1" }, toolCtx);
+
+      expect(res.success).toBe(true);
+      expect(res.message).toContain("1 of 2 associations failed");
+      expect(res.warnings).toEqual([expect.stringMatching(/^Deal association failed \(400\): .*bad deal/)]);
+    });
+
+    it("does not mention associations for a note created without any", async () => {
+      const tool = buildTool(def, ctxWithKey) as any;
+      mockFetch.mockResolvedValueOnce(createMockResponse(JSON.stringify({ id: "n-11", properties: {} })));
+
+      const res = await tool.execute({ ...base, action: "create" }, toolCtx);
+
+      expect(res.message).toBe("Note created successfully.");
+      expect(res.warnings).toBeUndefined();
+    });
+
+    it("reports a failed association read in search results instead of returning empty lists silently", async () => {
+      const tool = buildTool(def, ctxWithKey) as any;
+      mockFetch.mockImplementation((url: string) => {
+        const u = String(url);
+        if (u.includes("/crm/v3/objects/notes/search")) {
+          return Promise.resolve(
+            createMockResponse(
+              JSON.stringify({
+                total: 1,
+                results: [{ id: "n-42", properties: { hs_note_body: "x", hs_timestamp: "2026-04-20T10:00:00.000Z" } }],
+              }),
+            ),
+          );
+        }
+        if (u.includes("/crm/v4/associations/notes/deals/batch/read")) {
+          return Promise.resolve(createMockResponse(JSON.stringify({ message: "forbidden" }), { status: 403 }));
+        }
+        if (u.includes("/batch/read")) {
+          return Promise.resolve(createMockResponse(JSON.stringify({ results: [] })));
+        }
+        return Promise.resolve(createMockResponse(JSON.stringify({ portalId: 11111111 })));
+      });
+
+      const res = await tool.execute({ ...base, body: null, action: "search" }, toolCtx);
+
+      expect(res.found).toBe(1);
+      expect(res.notes[0].dealIds).toEqual([]);
+      expect(res.warnings).toEqual([expect.stringMatching(/403.*deals.*dealIds is empty/)]);
+    });
+  });
 });
