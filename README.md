@@ -2,7 +2,7 @@
 
 HubSpot CRM tools for [Polyant](https://github.com/polyant-ai/polyant), packaged as a
 plugin so that a deployment that does not use HubSpot does not carry them. The plugin
-is also installable from the Polyant marketplace for Polyant Enterprise.
+is also installable from the Polyant marketplace.
 
 ## Tools
 
